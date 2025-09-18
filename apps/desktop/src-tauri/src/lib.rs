@@ -9,7 +9,7 @@ use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFOR
 use windows::Win32::System::ProcessStatus::K32GetModuleFileNameExW;
 use windows::Win32::Foundation::CloseHandle;
 use std::path::Path;
-use tauri_plugin_autostart::{MacosLauncher, WindowsBootstrapper};
+use tauri_plugin_autostart::MacosLauncher;
 use tauri::{AppHandle, Manager, State, tray::{TrayIconBuilder, TrayIconEvent}};
 use tauri_plugin_updater::UpdaterExt;
 use rusqlite::{Connection, params};
@@ -86,7 +86,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
-            Some(WindowsBootstrapper::Service),
+            None,
         ))
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -112,34 +112,49 @@ pub fn run() {
             let db_path = app_dir.join("wasteday.db");
             let mut conn = Connection::open(db_path)?;
             apply_schema(&mut conn)?;
+            
+            // 初回起動かどうかを判定（connを使用する前に）
+            let is_first_run = conn.execute(
+                "SELECT COUNT(*) FROM user_settings WHERE key = 'has_run_before'",
+                [],
+            ).map_err(|e| e.to_string())? == 0;
+            
+            // 初回起動フラグを設定
+            if is_first_run {
+                conn.execute(
+                    "INSERT INTO user_settings(key, value) VALUES('has_run_before', 'true')",
+                    [],
+                ).map_err(|e| e.to_string())?;
+            }
+            
             app.manage(Db(Mutex::new(conn)));
             
-            // Single-instanceイベントを処理
-            let window = app.get_webview_window("main").unwrap();
-            app.listen("single-instance", move |_event| {
-                // 既存のウィンドウを前面に表示
-                let _ = window.show();
-                let _ = window.set_focus();
-            });
-            // 初回起動時はウィンドウを表示、2回目以降はトレイ常駐
+            // 自動起動かどうかを判定
+            // 1. コマンドライン引数で判定
+            let args: Vec<String> = std::env::args().collect();
+            let is_auto_start_by_args = args.iter().any(|arg| arg.contains("--autostart") || arg.contains("--hidden"));
+            
+            // 2. 起動時間で判定（システム起動から30秒以内なら自動起動とみなす）
+            let system_uptime = unsafe { GetTickCount() } as u64;
+            let is_auto_start_by_time = system_uptime < 30000; // 30秒
+            
+            // 3. 環境変数で判定（Tauriの自動起動プラグインが設定する可能性）
+            let is_auto_start_by_env = std::env::var("TAURI_AUTOSTART").is_ok();
+            
+            let is_auto_start = is_auto_start_by_args || is_auto_start_by_time || is_auto_start_by_env;
+            
             if let Some(window) = app.get_webview_window("main") {
-                // 初回起動かどうかを判定
-                let is_first_run = conn.execute(
-                    "SELECT COUNT(*) FROM user_settings WHERE key = 'has_run_before'",
-                    [],
-                ).map_err(|e| e.to_string())? == 0;
                 
                 if is_first_run {
-                    // 初回起動時はウィンドウを表示
+                    // 初回起動時は必ずウィンドウを表示
                     let _ = window.show();
                     let _ = window.set_focus();
-                    
-                    // 初回起動フラグを設定
-                    conn.execute(
-                        "INSERT INTO user_settings(key, value) VALUES('has_run_before', 'true')",
-                        [],
-                    ).map_err(|e| e.to_string())?;
+                } else if !is_auto_start {
+                    // 2回目以降でも、自動起動でない場合はウィンドウを表示
+                    let _ = window.show();
+                    let _ = window.set_focus();
                 }
+                // 自動起動の場合はウィンドウを表示しない（トレイ常駐のみ）
                 
                 // ウィンドウを閉じてもアプリを終了させない
                 let window_clone = window.clone();
