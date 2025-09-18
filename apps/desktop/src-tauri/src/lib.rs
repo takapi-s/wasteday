@@ -9,7 +9,7 @@ use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFOR
 use windows::Win32::System::ProcessStatus::K32GetModuleFileNameExW;
 use windows::Win32::Foundation::CloseHandle;
 use std::path::Path;
-use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_autostart::{MacosLauncher, WindowsBootstrapper};
 use tauri::{AppHandle, Manager, State, tray::{TrayIconBuilder, TrayIconEvent}};
 use tauri_plugin_updater::UpdaterExt;
 use rusqlite::{Connection, params};
@@ -84,7 +84,10 @@ fn get_idle_seconds() -> u64 {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(WindowsBootstrapper::Service),
+        ))
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
@@ -99,7 +102,8 @@ pub fn run() {
             db_upsert_waste_category,
             db_delete_waste_category,
             check_for_updates,
-            install_update
+            install_update,
+            exit_app
         ])
         .setup(|app| {
             // Initialize SQLite database under AppData/wasteday.db
@@ -109,22 +113,61 @@ pub fn run() {
             let mut conn = Connection::open(db_path)?;
             apply_schema(&mut conn)?;
             app.manage(Db(Mutex::new(conn)));
-            // 開発中はウィンドウを表示、本番は非表示（トレイ常駐）
-            if let Some(window) = app.get_webview_window("main") {
-                // 一時的に常に表示するように変更
+            
+            // Single-instanceイベントを処理
+            let window = app.get_webview_window("main").unwrap();
+            app.listen("single-instance", move |_event| {
+                // 既存のウィンドウを前面に表示
                 let _ = window.show();
                 let _ = window.set_focus();
-                // if cfg!(debug_assertions) {
-                //     let _ = window.show();
-                //     let _ = window.set_focus();
-                // } else {
-                //     let _ = window.hide();
-                // }
+            });
+            // 初回起動時はウィンドウを表示、2回目以降はトレイ常駐
+            if let Some(window) = app.get_webview_window("main") {
+                // 初回起動かどうかを判定
+                let is_first_run = conn.execute(
+                    "SELECT COUNT(*) FROM user_settings WHERE key = 'has_run_before'",
+                    [],
+                ).map_err(|e| e.to_string())? == 0;
+                
+                if is_first_run {
+                    // 初回起動時はウィンドウを表示
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                    
+                    // 初回起動フラグを設定
+                    conn.execute(
+                        "INSERT INTO user_settings(key, value) VALUES('has_run_before', 'true')",
+                        [],
+                    ).map_err(|e| e.to_string())?;
+                }
+                
+                // ウィンドウを閉じてもアプリを終了させない
+                let window_clone = window.clone();
+                window.on_window_event(move |event| {
+                    match event {
+                        tauri::WindowEvent::CloseRequested { .. } => {
+                            // ウィンドウを閉じる代わりに隠す
+                            let _ = window_clone.hide();
+                        }
+                        _ => {}
+                    }
+                });
             }
-            // トレイアイコン（クリックで表示）
+            // トレイアイコン（クリックで表示/非表示切り替え）
             let _tray = TrayIconBuilder::new()
                 .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click { .. } = event { if let Some(w) = tray.app_handle().get_webview_window("main") { let _ = w.show(); let _ = w.set_focus(); } }
+                    if let TrayIconEvent::Click { .. } = event {
+                        if let Some(window) = tray.app_handle().get_webview_window("main") {
+                            if window.is_visible().unwrap_or(false) {
+                                // ウィンドウが表示されている場合は隠す
+                                let _ = window.hide();
+                            } else {
+                                // ウィンドウが隠れている場合は表示
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                    }
                 })
                 .build(app.handle())?;
             Ok(())
@@ -169,6 +212,12 @@ async fn install_update(app: AppHandle) -> Result<(), String> {
         Ok(None) => Err("No update available".to_string()),
         Err(e) => Err(e.to_string()),
     }
+}
+
+#[tauri::command]
+async fn exit_app(app: AppHandle) -> Result<(), String> {
+    app.exit(0);
+    Ok(())
 }
 
 fn apply_schema(conn: &mut Connection) -> rusqlite::Result<()> {
