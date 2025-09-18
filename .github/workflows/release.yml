@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build workspace packages
+        run: npm run build --workspace=packages/ui --workspace=packages/ingest --workspace=packages/localdb
+
       - name: Build the app
         run: cd apps/desktop && npm run tauri build
         env:
