@@ -2,6 +2,23 @@
 
 PC上の「浪費時間（SNS・動画・ゲーム等）」を自動で記録・集計し、当日どの程度"無駄にしたか"を一目で把握できるアプリケーションです。
 
+## ダウンロード
+
+最新版のWastedayをダウンロードしてインストールできます：
+
+[![Download Latest Release](https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge&logo=github)](https://github.com/takapi-s/wasteday/releases/latest)
+
+### 対応OS
+- **Windows**: MSIインストーラーまたはポータブル版（EXE）
+- **macOS**: DMGインストーラー（将来対応予定）
+- **Linux**: AppImage（将来対応予定）
+
+### インストール方法
+
+1. 上記の「Download Latest Release」ボタンをクリック
+2. お使いのOSに合ったファイルをダウンロード
+3. ダウンロードしたファイルを実行してインストール
+
 ## 概要
 
 このアプリケーションは、要件定義に基づいて以下の機能を提供します：
@@ -34,6 +51,18 @@ wasteday/
 └── README.md
 ```
 
+## クイックスタート
+
+### ユーザー向け
+1. [最新版をダウンロード](#ダウンロード)
+2. インストールして起動
+3. 自動で時間記録が開始されます
+
+### 開発者向け
+1. [リポジトリをクローン](#セットアップ)
+2. 依存関係をインストール
+3. 開発サーバーを起動
+
 ## セットアップ
 
 ### 前提条件
@@ -45,7 +74,7 @@ wasteday/
 ### 1. リポジトリのクローン
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/takapi-s/wasteday.git
 cd wasteday
 ```
 
