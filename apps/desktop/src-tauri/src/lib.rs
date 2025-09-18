@@ -111,12 +111,15 @@ pub fn run() {
             app.manage(Db(Mutex::new(conn)));
             // 開発中はウィンドウを表示、本番は非表示（トレイ常駐）
             if let Some(window) = app.get_webview_window("main") {
-                if cfg!(debug_assertions) {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                } else {
-                    let _ = window.hide();
-                }
+                // 一時的に常に表示するように変更
+                let _ = window.show();
+                let _ = window.set_focus();
+                // if cfg!(debug_assertions) {
+                //     let _ = window.show();
+                //     let _ = window.set_focus();
+                // } else {
+                //     let _ = window.hide();
+                // }
             }
             // トレイアイコン（クリックで表示）
             let _tray = TrayIconBuilder::new()
