@@ -1,0 +1,13 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/localdb" },
+    { "path": "./packages/ingest" },
+    { "path": "./packages/database" },
+    { "path": "./apps/desktop" },
+    { "path": "./apps/collector" }
+  ],
+  "compilerOptions": {
+    "skipLibCheck": true
+  }
+}

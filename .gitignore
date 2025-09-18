@@ -32,4 +32,8 @@ coverage/
 *.swp
 *.swo
 
+# Tauri signing keys (contains private keys - keep secret!)
+.tauri/
+**/.tauri/
 
+.memo

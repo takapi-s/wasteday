@@ -74,6 +74,24 @@ export class IngestService {
     const nowIso = sample.timestamp;
     const is_idle = sample.user_state === 'idle';
 
+    // 新しいサンプルが来た時点で、現在キーと異なるオープンセッションは終了させる
+    for (const [k, s] of Array.from(this.openSessions.entries())) {
+      if (k === key) continue;
+      const durationSeconds = Math.max(0, Math.floor((new Date(s.last_time).getTime() - new Date(s.start_time).getTime()) / 1000));
+      this.emit({
+        type: 'session_ended',
+        session_key: s.session_key,
+        start_time: s.start_time,
+        end_time: s.last_time,
+        duration_seconds: durationSeconds,
+        is_idle: s.is_idle,
+        is_media_playing: s.is_media_playing,
+        window_title: s.window_title,
+        url: s.url,
+      });
+      this.openSessions.delete(k);
+    }
+
     const existing = this.openSessions.get(key);
     if (!existing) {
       const open: OpenSession = {
@@ -180,5 +198,8 @@ export class IngestService {
     }
   }
 }
+
+
+export { insertSession, createInsertSessionWithConfig } from './writer.js';
 
 

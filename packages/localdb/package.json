@@ -1,0 +1,23 @@
+{
+  "name": "@wasteday/localdb",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SQLite local database schema, types and repository interfaces for Wasteday desktop",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "rimraf": "^5.0.5"
+  }
+}
+
