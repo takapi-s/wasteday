@@ -1,5 +1,6 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use serde::{Serialize, Deserialize};
+use log::{info, warn, error, debug};
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId};
 use windows::Win32::Foundation::HWND;
 use windows::Win32::UI::Input::KeyboardAndMouse::GetLastInputInfo;
@@ -9,8 +10,8 @@ use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFOR
 use windows::Win32::System::ProcessStatus::K32GetModuleFileNameExW;
 use windows::Win32::Foundation::CloseHandle;
 use std::path::Path;
+use tauri::{AppHandle, Manager, State, tray::{TrayIconBuilder, TrayIconEvent, TrayIcon}};
 use tauri_plugin_autostart::MacosLauncher;
-use tauri::{AppHandle, Manager, State, tray::{TrayIconBuilder, TrayIconEvent}};
 use tauri_plugin_updater::UpdaterExt;
 use rusqlite::{Connection, params};
 use std::sync::Mutex;
@@ -84,12 +85,16 @@ fn get_idle_seconds() -> u64 {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_autostart::init(
-            MacosLauncher::LaunchAgent,
-            None,
-        ))
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // 既存インスタンスがある場合に呼ばれる: ウィンドウを前面化
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.show();
+                let _ = w.unminimize();
+                let _ = w.set_focus();
+            }
+        }))
         .invoke_handler(tauri::generate_handler![
             get_foreground_info,
             get_idle_seconds,
@@ -106,25 +111,128 @@ pub fn run() {
             exit_app
         ])
         .setup(|app| {
+            info!("Setting up WasteDay application...");
+            // トレイハンドルを保持するための状態を登録（ドロップによる消滅を防ぐ）
+            struct TrayHolder(std::sync::Mutex<Option<TrayIcon>>);
+            app.manage(TrayHolder(std::sync::Mutex::new(None)));
+            // クリック多重発火対策のクールダウン
+            struct TrayClickCooldown(std::sync::Mutex<Option<std::time::Instant>>);
+            app.manage(TrayClickCooldown(std::sync::Mutex::new(None)));
+            
+            // Initialize autostart plugin
+            #[cfg(desktop)]
+            {
+                // Windows: レジストリ方式で自動起動を有効化し、--autostart を付与
+                #[cfg(target_os = "windows")]
+                {
+                    match app.handle().plugin(tauri_plugin_autostart::init(
+                        MacosLauncher::LaunchAgent,
+                        Some(vec!["--autostart"]),
+                    )) {
+                        Ok(_) => info!("Autostart plugin initialized successfully (Windows)"),
+                        Err(e) => {
+                            error!("Failed to initialize autostart plugin on Windows: {}", e);
+                            return Err(e.into());
+                        }
+                    }
+                }
+                #[cfg(target_os = "macos")]
+                {
+                    match app.handle().plugin(tauri_plugin_autostart::init(
+                        MacosLauncher::LaunchAgent,
+                        Some(vec!["--autostart"]),
+                    )) {
+                        Ok(_) => info!("Autostart plugin initialized successfully"),
+                        Err(e) => {
+                            error!("Failed to initialize autostart plugin: {}", e);
+                            return Err(e.into());
+                        }
+                    }
+                }
+                #[cfg(target_os = "linux")]
+                {
+                    match app.handle().plugin(tauri_plugin_autostart::init(
+                        tauri_plugin_autostart::LinuxLauncher::Systemd,
+                        Some(vec!["--autostart"]),
+                    )) {
+                        Ok(_) => info!("Autostart plugin initialized successfully"),
+                        Err(e) => {
+                            error!("Failed to initialize autostart plugin: {}", e);
+                            return Err(e.into());
+                        }
+                    }
+                }
+            }
+            
             // Initialize SQLite database under AppData/wasteday.db
-            let app_dir = app.path().app_data_dir().expect("app data dir");
-            fs::create_dir_all(&app_dir)?;
+            let app_dir = match app.path().app_data_dir() {
+                Ok(dir) => {
+                    info!("App data directory: {:?}", dir);
+                    dir
+                }
+                Err(e) => {
+                    error!("Failed to get app data directory: {}", e);
+                    return Err(e.into());
+                }
+            };
+            
+            if let Err(e) = fs::create_dir_all(&app_dir) {
+                error!("Failed to create app data directory: {}", e);
+                return Err(e.into());
+            }
+            
             let db_path = app_dir.join("wasteday.db");
-            let mut conn = Connection::open(db_path)?;
-            apply_schema(&mut conn)?;
+            info!("Database path: {:?}", db_path);
+            
+            let mut conn = match Connection::open(&db_path) {
+                Ok(conn) => {
+                    info!("Database connection opened successfully");
+                    conn
+                }
+                Err(e) => {
+                    error!("Failed to open database: {}", e);
+                    return Err(e.into());
+                }
+            };
+            
+            if let Err(e) = apply_schema(&mut conn) {
+                error!("Failed to apply database schema: {}", e);
+                return Err(e.into());
+            }
+            info!("Database initialized successfully");
             
             // 初回起動かどうかを判定（connを使用する前に）
-            let is_first_run = conn.execute(
+            let is_first_run = match conn.query_row(
                 "SELECT COUNT(*) FROM user_settings WHERE key = 'has_run_before'",
                 [],
-            ).map_err(|e| e.to_string())? == 0;
+                |row| {
+                    let count: i64 = row.get(0)?;
+                    Ok(count == 0)
+                }
+            ) {
+                Ok(result) => {
+                    info!("First run check query executed successfully, is_first_run: {}", result);
+                    result
+                }
+                Err(e) => {
+                    error!("Failed to check first run status: {}", e);
+                    return Err(e.into());
+                }
+            };
+            info!("Is first run: {}", is_first_run);
             
             // 初回起動フラグを設定
             if is_first_run {
-                conn.execute(
+                match conn.execute(
                     "INSERT INTO user_settings(key, value) VALUES('has_run_before', 'true')",
                     [],
-                ).map_err(|e| e.to_string())?;
+                ) {
+                    Ok(_) => info!("First run flag set successfully"),
+                    Err(e) => {
+                        error!("Failed to set first run flag: {}", e);
+                        return Err(e.into());
+                    }
+                }
             }
             
             app.manage(Db(Mutex::new(conn)));
@@ -132,35 +240,51 @@ pub fn run() {
             // 自動起動かどうかを判定
             // 1. コマンドライン引数で判定
             let args: Vec<String> = std::env::args().collect();
+            info!("Command line arguments: {:?}", args);
             let is_auto_start_by_args = args.iter().any(|arg| arg.contains("--autostart") || arg.contains("--hidden"));
+            info!("Auto start by args: {}", is_auto_start_by_args);
             
-            // 2. 起動時間で判定（システム起動から30秒以内なら自動起動とみなす）
-            let system_uptime = unsafe { GetTickCount() } as u64;
-            let is_auto_start_by_time = system_uptime < 30000; // 30秒
-            
-            // 3. 環境変数で判定（Tauriの自動起動プラグインが設定する可能性）
+            // 2. 環境変数で判定（Tauriの自動起動プラグインが設定する可能性）
             let is_auto_start_by_env = std::env::var("TAURI_AUTOSTART").is_ok();
+            info!("Auto start by env: {}", is_auto_start_by_env);
             
-            let is_auto_start = is_auto_start_by_args || is_auto_start_by_time || is_auto_start_by_env;
+            // システム起動時間による判定は削除（通常起動でも誤判定されるため）
+            let is_auto_start = is_auto_start_by_args || is_auto_start_by_env;
+            info!("Is auto start: {}", is_auto_start);
             
             if let Some(window) = app.get_webview_window("main") {
+                info!("Main window found");
                 
                 if is_first_run {
                     // 初回起動時は必ずウィンドウを表示
-                    let _ = window.show();
-                    let _ = window.set_focus();
+                    info!("First run - showing window");
+                    if let Err(e) = window.show() {
+                        error!("Failed to show window on first run: {}", e);
+                    }
+                    if let Err(e) = window.set_focus() {
+                        error!("Failed to set focus on first run: {}", e);
+                    }
                 } else if !is_auto_start {
                     // 2回目以降でも、自動起動でない場合はウィンドウを表示
-                    let _ = window.show();
-                    let _ = window.set_focus();
+                    info!("Normal startup - showing window");
+                    if let Err(e) = window.show() {
+                        error!("Failed to show window on normal startup: {}", e);
+                    }
+                    if let Err(e) = window.set_focus() {
+                        error!("Failed to set focus on normal startup: {}", e);
+                    }
+                } else {
+                    // 自動起動の場合はウィンドウを表示しない（トレイ常駐のみ）
+                    info!("Auto start - hiding window, running in tray only");
                 }
-                // 自動起動の場合はウィンドウを表示しない（トレイ常駐のみ）
                 
                 // ウィンドウを閉じてもアプリを終了させない
                 let window_clone = window.clone();
                 window.on_window_event(move |event| {
                     match event {
-                        tauri::WindowEvent::CloseRequested { .. } => {
+                        tauri::WindowEvent::CloseRequested { api, .. } => {
+                            // 実際にウィンドウを閉じない（アプリ終了を防ぐ）
+                            api.prevent_close();
                             // ウィンドウを閉じる代わりに隠す
                             let _ = window_clone.hide();
                         }
@@ -169,25 +293,82 @@ pub fn run() {
                 });
             }
             // トレイアイコン（クリックで表示/非表示切り替え）
-            let _tray = TrayIconBuilder::new()
+            info!("Setting up tray icon");
+            let mut tray_builder = TrayIconBuilder::new()
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click { .. } = event {
-                        if let Some(window) = tray.app_handle().get_webview_window("main") {
-                            if window.is_visible().unwrap_or(false) {
-                                // ウィンドウが表示されている場合は隠す
-                                let _ = window.hide();
-                            } else {
-                                // ウィンドウが隠れている場合は表示
-                                let _ = window.show();
-                                let _ = window.set_focus();
+                        info!("Tray icon clicked");
+                        // クリック多重発火のクールダウン（300ms）
+                        if let Some(cd) = tray.app_handle().try_state::<TrayClickCooldown>() {
+                            if let Ok(mut guard) = cd.0.lock() {
+                                if let Some(t) = *guard {
+                                    if t.elapsed() < std::time::Duration::from_millis(300) {
+                                        info!("Ignore tray click due to cooldown");
+                                        return;
+                                    }
+                                }
+                                *guard = Some(std::time::Instant::now());
                             }
                         }
+                        if let Some(window) = tray.app_handle().get_webview_window("main") {
+                            let visible = window.is_visible().unwrap_or(false);
+                            let minimized = window.is_minimized().unwrap_or(false);
+                            if visible && !minimized {
+                                // 表示中なら隠す（トグル）
+                                info!("Hiding window from tray click");
+                                if let Err(e) = window.hide() {
+                                    error!("Failed to hide window from tray click: {}", e);
+                                }
+                                return;
+                            }
+
+                            // 非表示または最小化の場合は確実に前面表示
+                            info!("Restoring and focusing window from tray click");
+                            let _ = window.show();
+                            let _ = window.unminimize();
+                            // Windows で前面化が弱い場合の対策: 一時的に常に前面に
+                            let _ = window.set_always_on_top(true);
+                            let _ = window.set_focus();
+                            // 少し遅延させて戻すと安定
+                            let app_handle = tray.app_handle().clone();
+                            tauri::async_runtime::spawn_blocking(move || {
+                                std::thread::sleep(std::time::Duration::from_millis(50));
+                                if let Some(w) = app_handle.get_webview_window("main") {
+                                    let _ = w.set_always_on_top(false);
+                                }
+                            });
+                        }
                     }
-                })
-                .build(app.handle())?;
+                });
+            // 既定のウィンドウアイコンをトレイに設定（Windowsでアイコン未設定だと非表示になる場合の対策）
+            if let Some(icon) = app.default_window_icon().cloned() {
+                tray_builder = tray_builder.icon(icon);
+            }
+            tray_builder = tray_builder.tooltip("WasteDay");
+            let _tray = match tray_builder.build(app.handle()) {
+                Ok(tray) => {
+                    info!("Tray icon setup complete");
+                    // トレイハンドルを保持
+                    if let Some(holder) = app.try_state::<TrayHolder>() {
+                        if let Ok(mut guard) = holder.0.lock() {
+                            *guard = Some(tray.clone());
+                        }
+                    }
+                    tray
+                }
+                Err(e) => {
+                    error!("Failed to setup tray icon: {}", e);
+                    return Err(e.into());
+                }
+            };
+            info!("Application setup completed successfully");
             Ok(())
         })
         .run(tauri::generate_context!())
+        .map_err(|e| {
+            error!("Failed to run Tauri application: {}", e);
+            e
+        })
         .expect("error while running tauri application");
 }
 

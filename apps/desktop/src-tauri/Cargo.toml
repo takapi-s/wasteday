@@ -23,6 +23,7 @@ tauri-plugin-opener = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-http = "2"
 tauri-plugin-updater = "2"
+tauri-plugin-single-instance = "2"
 rusqlite = { version = "0.31", features = ["bundled"] }
 time = { version = "0.3", features = ["parsing", "formatting"] }
 windows = { version = "0.54", features = [
@@ -35,4 +36,8 @@ windows = { version = "0.54", features = [
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+log = "0.4"
+env_logger = "0.10"
+dirs = "5.0"
+chrono = { version = "0.4", features = ["serde"] }
 
