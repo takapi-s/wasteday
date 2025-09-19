@@ -229,3 +229,4 @@ export const useLocalAppCategories = (): AppCategoriesData & {
     deleteCategory,
   };
 };
+

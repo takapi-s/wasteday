@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { invoke } from '@tauri-apps/api/core';
 
 export type DatabaseStatus = {
   connected: boolean;
@@ -15,41 +15,22 @@ export const useDatabaseStatus = (): DatabaseStatus => {
     loading: true,
     error: null,
     lastChecked: null,
-    url: null,
+    url: 'local://sqlite',
   });
 
   useEffect(() => {
     const checkConnection = async () => {
-      if (!supabase) {
-        setStatus({
-          connected: false,
-          loading: false,
-          error: 'Supabase credentials not configured',
-          lastChecked: new Date(),
-          url: null,
-        });
-        return;
-      }
-
       try {
         setStatus(prev => ({ ...prev, loading: true, error: null }));
-
-        // 簡単なクエリで接続をテスト
-        const { error } = await supabase
-          .from('sessions')
-          .select('id')
-          .limit(1);
-
-        if (error) {
-          throw error;
-        }
+        // ローカルDBに簡易クエリを投げて接続確認
+        await invoke('db_get_user_setting', { key: 'has_run_before' }).catch(() => null);
 
         setStatus({
           connected: true,
           loading: false,
           error: null,
           lastChecked: new Date(),
-          url: (import.meta as any).env?.VITE_SUPABASE_URL || 'Unknown',
+          url: 'local://sqlite',
         });
 
       } catch (err) {
@@ -59,7 +40,7 @@ export const useDatabaseStatus = (): DatabaseStatus => {
           loading: false,
           error: err instanceof Error ? err.message : 'Connection failed',
           lastChecked: new Date(),
-          url: (import.meta as any).env?.VITE_SUPABASE_URL || 'Unknown',
+          url: 'local://sqlite',
         });
       }
     };

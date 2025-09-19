@@ -208,17 +208,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           {databaseLoading ? (
             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
               <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-              <span className="text-sm">Connecting...</span>
+              <span className="text-sm">Checking local DB...</span>
             </div>
           ) : databaseConnected ? (
             <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm">Database Connected</span>
+              <span className="text-sm">Local DB Ready</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span className="text-sm">Database Disconnected</span>
+              <span className="text-sm">Local DB Unavailable</span>
             </div>
           )}
         </div>

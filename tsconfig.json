@@ -4,8 +4,7 @@
     { "path": "./packages/localdb" },
     { "path": "./packages/ingest" },
     { "path": "./packages/database" },
-    { "path": "./apps/desktop" },
-    { "path": "./apps/collector" }
+    { "path": "./apps/desktop" }
   ],
   "compilerOptions": {
     "skipLibCheck": true

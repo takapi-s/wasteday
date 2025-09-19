@@ -13,6 +13,8 @@ export interface SettingsPageProps {
   databaseError?: string | null;
   databaseUrl?: string | null;
   className?: string;
+  // Toggle visibility of Database Status section (desktop uses local DB)
+  showDatabaseStatus?: boolean;
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({
@@ -26,6 +28,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   databaseError = null,
   databaseUrl = null,
   className = "",
+  showDatabaseStatus = false,
 }) => {
   const [idleThreshold, setIdleThreshold] = useState(60);
   const [gapThreshold, setGapThreshold] = useState(20);
@@ -137,6 +140,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       </div>
 
       {/* Database Status */}
+      {showDatabaseStatus && (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-6">Database Status</h2>
         
@@ -185,6 +189,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };

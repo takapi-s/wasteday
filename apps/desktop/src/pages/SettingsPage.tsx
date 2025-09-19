@@ -1,13 +1,11 @@
 import React from 'react';
 import { useIngest } from '../context/IngestContext';
 import { useDarkMode } from '../hooks/useDarkMode';
-import { useDatabaseStatus } from '../hooks/useDatabaseStatus';
 import { SettingsPage as SharedSettingsPage } from '@wasteday/ui';
 
 export const SettingsPage: React.FC = () => {
   const { autostartEnabled, toggleAutostart } = useIngest();
   const { theme, setLightMode, setDarkMode, setSystemMode } = useDarkMode();
-  const { connected, loading: dbLoading, error: dbError, url } = useDatabaseStatus();
 
   const handleSaveSettings = (settings: { idleThreshold: number; gapThreshold: number }) => {
     // Persist to localStorage for now; can be moved to Supabase user settings later
@@ -38,10 +36,7 @@ export const SettingsPage: React.FC = () => {
       onSaveSettings={handleSaveSettings}
       theme={theme}
       onThemeChange={handleThemeChange}
-      databaseConnected={connected}
-      databaseLoading={dbLoading}
-      databaseError={dbError}
-      databaseUrl={url}
+      showDatabaseStatus={false}
     />
   );
 };
