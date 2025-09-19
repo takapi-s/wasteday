@@ -1,6 +1,6 @@
 {
   "name": "wasteday",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "無駄時間可視化アプリケーション",
   "private": true,
   "workspaces": [
