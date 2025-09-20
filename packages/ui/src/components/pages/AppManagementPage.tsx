@@ -6,7 +6,7 @@ export type AppCategory = {
   type: 'app' | 'domain';
   identifier: string;
   label: 'waste' | 'neutral' | 'study';
-  is_active: boolean;
+  active: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -16,7 +16,7 @@ export interface AppManagementPageProps {
   loading: boolean;
   error: string | null;
   onUpdateCategory: (id: string, label: 'waste' | 'neutral' | 'study') => Promise<void>;
-  onToggleActive: (id: string, is_active: boolean) => Promise<void>;
+  onToggleActive: (id: string, active: boolean) => Promise<void>;
   // newly discovered from sessions
   discovered?: { type: 'app' | 'domain'; identifier: string; lastSeen: string; count: number }[];
   onAddCategory?: (payload: { name: string; type: 'app' | 'domain'; identifier: string; label?: 'waste' | 'neutral' | 'study' }) => Promise<void>;
@@ -54,8 +54,6 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
     }
   };
 
-  // no-op
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -84,9 +82,8 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Search */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Search
             </label>
             <input
@@ -94,37 +91,33 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name or identifier..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             />
           </div>
-
-          {/* Type Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Type
             </label>
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              onChange={(e) => setFilterType(e.target.value as 'all' | 'app' | 'domain')}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             >
               <option value="all">All Types</option>
-              <option value="app">Apps</option>
+              <option value="app">Applications</option>
               <option value="domain">Domains</option>
             </select>
           </div>
-
-          {/* Label Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Category
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Label
             </label>
             <select
               value={filterLabel}
-              onChange={(e) => setFilterLabel(e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              onChange={(e) => setFilterLabel(e.target.value as 'all' | 'waste' | 'neutral' | 'study')}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             >
-              <option value="all">All Categories</option>
+              <option value="all">All Labels</option>
               <option value="waste">Waste</option>
               <option value="neutral">Neutral</option>
               <option value="study">Study</option>
@@ -133,7 +126,7 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
         </div>
       </div>
 
-      {/* App List */}
+      {/* Categories List */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
@@ -184,45 +177,50 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
                       </div>
                     </div>
                   
-                  <div className="flex items-center gap-4">
-                    {/* Delete */}
-                    {onDeleteCategory && (
-                      <button
-                        onClick={() => onDeleteCategory(category.id)}
-                        className="px-2 py-1 text-xs rounded border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
-                      >
-                        Delete
-                      </button>
-                    )}
-                    {/* Active Toggle */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">Active</span>
-                      <button
-                        onClick={() => onToggleActive(category.id, !category.is_active)}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                          category.is_active ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                            category.is_active ? 'translate-x-5' : 'translate-x-1'
+                    <div className="flex items-center gap-4">
+                      {/* Delete */}
+                      {onDeleteCategory && (
+                        <button
+                          onClick={() => onDeleteCategory(category.id)}
+                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                          title="Delete category"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                      
+                      {/* Active Toggle */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Active</span>
+                        <button
+                          onClick={() => onToggleActive(category.id, !category.active)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                            category.active ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
                           }`}
-                        />
-                      </button>
-                    </div>
+                        >
+                          <span
+                            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                              category.active ? 'translate-x-5' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
 
-                    {/* Label Selector */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">Category</span>
-                      <select
-                        value={category.label}
-                        onChange={(e) => onUpdateCategory(category.id, e.target.value as any)}
-                        className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                      >
-                        <option value="neutral">Neutral</option>
-                        <option value="waste">Waste</option>
-                        <option value="study">Study</option>
-                      </select>
+                      {/* Label Selector */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Label</span>
+                        <select
+                          value={category.label}
+                          onChange={(e) => onUpdateCategory(category.id, e.target.value as 'waste' | 'neutral' | 'study')}
+                          className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        >
+                          <option value="neutral">Neutral</option>
+                          <option value="waste">Waste</option>
+                          <option value="study">Study</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -269,34 +267,20 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
       {/* Legend */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Legend</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500" />
-            <span className="text-gray-600 dark:text-gray-400">Applications</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-purple-500" />
-            <span className="text-gray-600 dark:text-gray-400">Domains</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-gray-300" />
-            <span className="text-gray-600 dark:text-gray-400">Inactive</span>
-          </div>
-        </div>
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div className="flex items-center gap-2">
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-3">
             <span className={`px-2 py-1 rounded text-xs ${getLabelColor('waste')}`}>
               Waste
             </span>
-            <span className="text-gray-600 dark:text-gray-400">Time-wasting apps</span>
+            <span className="text-gray-600 dark:text-gray-400">Time-wasting activities</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className={`px-2 py-1 rounded text-xs ${getLabelColor('neutral')}`}>
               Neutral
             </span>
-            <span className="text-gray-600 dark:text-gray-400">Regular productivity</span>
+            <span className="text-gray-600 dark:text-gray-400">Neutral activities</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className={`px-2 py-1 rounded text-xs ${getLabelColor('study')}`}>
               Study
             </span>

@@ -27,7 +27,7 @@ type LocalSession = {
 
 export const useLocalAppCategories = (): AppCategoriesData & {
   updateCategory: (id: string, label: 'waste' | 'neutral' | 'study') => Promise<void>;
-  toggleActive: (id: string, is_active: boolean) => Promise<void>;
+  toggleActive: (id: string, active: boolean) => Promise<void>;
   addCategory: (payload: { name: string; type: 'app' | 'domain'; identifier: string; label?: 'waste' | 'neutral' | 'study' }) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
 } => {
@@ -74,7 +74,7 @@ export const useLocalAppCategories = (): AppCategoriesData & {
           type: cat.type as 'app' | 'domain',
           identifier: cat.identifier,
           label: cat.label === 'waste' ? 'waste' : cat.label === 'productive' ? 'study' : 'neutral',
-          is_active: cat.is_active,
+          active: cat.is_active,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -165,10 +165,6 @@ export const useLocalAppCategories = (): AppCategoriesData & {
         )
       }));
 
-      // カテゴリー変更後にデータを再取得して他画面への反映を確実にする
-      console.log('[useLocalAppCategories] Category updated, refreshing data...');
-      await fetchCategories();
-
       // 他のコンポーネントに変更を通知
       categoryEventEmitter.notifyCategoryUpdated(id, label);
 
@@ -178,7 +174,7 @@ export const useLocalAppCategories = (): AppCategoriesData & {
     }
   };
 
-  const toggleActive = async (id: string, is_active: boolean) => {
+  const toggleActive = async (id: string, active: boolean) => {
     try {
       const categories = await invoke<LocalWasteCategory[]>('db_list_waste_categories');
       const existing = categories.find(c => String(c.id) === id);
@@ -186,7 +182,7 @@ export const useLocalAppCategories = (): AppCategoriesData & {
 
       const category: LocalWasteCategory = {
         ...existing,
-        is_active,
+        is_active: active,
       };
 
       await invoke('db_upsert_waste_category', { cat: category });
@@ -195,16 +191,12 @@ export const useLocalAppCategories = (): AppCategoriesData & {
       setData(prev => ({
         ...prev,
         categories: prev.categories.map(cat =>
-          cat.id === id ? { ...cat, is_active, updated_at: new Date().toISOString() } : cat
+          cat.id === id ? { ...cat, active: active, updated_at: new Date().toISOString() } : cat
         )
       }));
 
-      // アクティブ状態変更後にデータを再取得
-      console.log('[useLocalAppCategories] Active status updated, refreshing data...');
-      await fetchCategories();
-
       // 他のコンポーネントに変更を通知
-      categoryEventEmitter.notifyCategoryActiveToggled(id, is_active);
+      categoryEventEmitter.notifyCategoryActiveToggled(id, active);
 
     } catch (err) {
       console.error('Failed to toggle active status:', err);
@@ -224,30 +216,33 @@ export const useLocalAppCategories = (): AppCategoriesData & {
 
       await invoke('db_upsert_waste_category', { cat: category });
 
-      // ローカル状態を更新
-      const newCategory: AppCategory = {
-        id: Date.now().toString(), // 仮のID
-        name: payload.name || payload.identifier,
-        type: payload.type,
-        identifier: payload.identifier,
-        label: payload.label || 'neutral',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      // 追加されたカテゴリの実際のIDを取得するために、データベースから最新の情報を取得
+      const updatedCategories = await invoke<LocalWasteCategory[]>('db_list_waste_categories');
+      const addedCategory = updatedCategories.find(cat => 
+        cat.identifier === payload.identifier && cat.type === payload.type
+      );
 
-      setData(prev => ({
-        ...prev,
-        categories: [...prev.categories, newCategory],
-        discovered: prev.discovered.filter(d => !(d.type === payload.type && d.identifier.toLowerCase() === payload.identifier.toLowerCase())),
-      }));
+      if (addedCategory) {
+        const newCategory: AppCategory = {
+          id: String(addedCategory.id),
+          name: payload.name || payload.identifier,
+          type: payload.type,
+          identifier: payload.identifier,
+          label: payload.label || 'neutral',
+          active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
 
-      // カテゴリー追加後にデータを再取得して他画面への反映を確実にする
-      console.log('[useLocalAppCategories] Category added, refreshing data...');
-      await fetchCategories();
+        setData(prev => ({
+          ...prev,
+          categories: [...prev.categories, newCategory],
+          discovered: prev.discovered.filter(d => !(d.type === payload.type && d.identifier.toLowerCase() === payload.identifier.toLowerCase())),
+        }));
 
-      // 他のコンポーネントに変更を通知
-      categoryEventEmitter.notifyCategoryAdded(newCategory.id, newCategory);
+        // 他のコンポーネントに変更を通知
+        categoryEventEmitter.notifyCategoryAdded(newCategory.id, newCategory);
+      }
 
     } catch (err) {
       console.error('Failed to add category:', err);
@@ -262,10 +257,6 @@ export const useLocalAppCategories = (): AppCategoriesData & {
         ...prev,
         categories: prev.categories.filter(cat => cat.id !== id),
       }));
-
-      // カテゴリー削除後にデータを再取得
-      console.log('[useLocalAppCategories] Category deleted, refreshing data...');
-      await fetchCategories();
 
       // 他のコンポーネントに変更を通知
       categoryEventEmitter.notifyCategoryDeleted(id);
