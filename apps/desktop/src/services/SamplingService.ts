@@ -65,7 +65,7 @@ export class SamplingService {
   }
 
   public getPendingInserts(): Map<string, any> {
-    return this.ingest.getPendingInserts();
+    return this.ingest.getPendingSamples();
   }
 
   private setupVisibilityHandlers() {
@@ -134,7 +134,9 @@ export class SamplingService {
     };
 
     console.log('[SamplingService] サンプル実行:', { info, idleSec, user_state, sample });
-    this.ingest.handleSample(sample);
+    this.ingest.handleSample(sample).catch(error => {
+      console.error('[SamplingService] Sample processing error:', error);
+    });
     this.lastSampleTime = Date.now();
 
     const event: SamplingEvent = {
@@ -174,7 +176,9 @@ export class SamplingService {
     }
 
     // 開いているセッションをすべて終了
-    this.ingest.flushAll();
+    this.ingest.flushAll().catch(error => {
+      console.error('[SamplingService] Flush error:', error);
+    });
   }
 
   public onEvent(listener: (event: SamplingEvent) => void): () => void {

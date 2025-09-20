@@ -147,26 +147,42 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
               No applications found matching your filters.
             </div>
           ) : (
-            filteredCategories.map((category) => (
-              <div key={category.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0">
-                        <div className={`w-3 h-3 rounded-full ${
-                          category.type === 'app' ? 'bg-blue-500' : 'bg-purple-500'
-                        }`} />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {category.name}
-                        </h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {category.identifier} ({category.type})
-                        </p>
+            filteredCategories.map((category) => {
+              const hasInvalidIdentifier = !category.identifier || 
+                category.identifier === '(app)' || 
+                category.identifier === '(domain)' || 
+                category.identifier.length < 2;
+              
+              return (
+                <div 
+                  key={category.id} 
+                  className={`px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                    hasInvalidIdentifier ? 'border-l-4 border-yellow-400 bg-yellow-50/50 dark:bg-yellow-900/10' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0">
+                          <div className={`w-3 h-3 rounded-full ${
+                            category.type === 'app' ? 'bg-blue-500' : 'bg-purple-500'
+                          }`} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {category.name}
+                            {hasInvalidIdentifier && (
+                              <span className="ml-2 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded">
+                                Invalid Data
+                              </span>
+                            )}
+                          </h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {category.identifier} ({category.type})
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
                   
                   <div className="flex items-center gap-4">
                     {/* Delete */}
@@ -210,8 +226,8 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

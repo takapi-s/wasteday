@@ -52,18 +52,39 @@ export const useLocalAppCategories = (): AppCategoriesData & {
       ]);
 
       // カテゴリをAppCategory形式に変換
-      const appCategories: AppCategory[] = categories.map(cat => ({
-        id: String(cat.id || ''),
-        name: cat.identifier, // SQLite版では name フィールドがないので identifier を代用
-        type: cat.type as 'app' | 'domain',
-        identifier: cat.identifier,
-        label: cat.label === 'waste' ? 'waste' : cat.label === 'productive' ? 'study' : 'neutral',
-        is_active: cat.is_active,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }));
+      console.log('[useLocalAppCategories] Raw categories from DB:', categories);
+      
+      const appCategories: AppCategory[] = categories.map(cat => {
+        // identifierが空や不正な値の場合は、より適切な名前を生成
+        let displayName = cat.identifier;
+        if (!displayName || displayName === '(app)' || displayName === '(domain)' || displayName.length < 2) {
+          // より分かりやすい名前を生成
+          if (cat.type === 'app') {
+            displayName = `Unknown Application (${cat.identifier || 'unknown'})`;
+          } else if (cat.type === 'domain') {
+            displayName = `Unknown Domain (${cat.identifier || 'unknown'})`;
+          } else {
+            displayName = `${cat.type}: ${cat.identifier || 'unknown'}`;
+          }
+        }
+        
+        return {
+          id: String(cat.id || ''),
+          name: displayName,
+          type: cat.type as 'app' | 'domain',
+          identifier: cat.identifier,
+          label: cat.label === 'waste' ? 'waste' : cat.label === 'productive' ? 'study' : 'neutral',
+          is_active: cat.is_active,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      });
+      
+      console.log('[useLocalAppCategories] Processed app categories:', appCategories);
 
       // 過去30日のセッションから未登録のidentifierを検出
+      console.log('[useLocalAppCategories] Analyzing sessions:', sessions.length);
+      
       const known = new Set(categories.map(c => `${c.type}::${(c.identifier || '').toLowerCase()}`));
       const counter = new Map<string, { type: 'app' | 'domain'; identifier: string; lastSeen: string; count: number }>();
       
@@ -76,7 +97,13 @@ export const useLocalAppCategories = (): AppCategoriesData & {
         }, {} as any);
         const type = (parts['category'] as 'app' | 'domain') || 'app';
         const identifier = (parts['identifier'] as string) || '';
-        if (!identifier) continue;
+        
+        // デバッグ: 不正なidentifierをログ出力
+        if (!identifier || identifier === '(app)' || identifier === '(domain)') {
+          console.log('[useLocalAppCategories] Invalid identifier found:', { key, parts, type, identifier });
+          continue;
+        }
+        
         const k2 = `${type}::${identifier.toLowerCase()}`;
         if (known.has(k2)) continue;
         const prev = counter.get(k2);
@@ -88,6 +115,8 @@ export const useLocalAppCategories = (): AppCategoriesData & {
           counter.set(k2, { type, identifier, lastSeen, count: 1 });
         }
       }
+      
+      console.log('[useLocalAppCategories] Discovered identifiers:', Array.from(counter.values()));
 
       setData({
         categories: appCategories,
