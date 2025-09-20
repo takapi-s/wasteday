@@ -41,7 +41,7 @@ jobs:
           name: wasteday-${{ github.ref_name }}
           path: apps/desktop/src-tauri/target/release/bundle/
 
-  update-server:
+  create-github-release:
     runs-on: ubuntu-latest
     needs: create-release
     permissions:
@@ -56,13 +56,6 @@ jobs:
         with:
           name: wasteday-${{ github.ref_name }}
 
-      - name: Setup release server
-        run: |
-          # ここで実際のアップデートサーバーにファイルをアップロード
-          # 例: AWS S3, GitHub Releases, または独自のサーバー
-          echo "Uploading to update server..."
-          # aws s3 sync . s3://releases.wasteday.app/
-          
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:

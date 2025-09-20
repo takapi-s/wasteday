@@ -24,16 +24,16 @@ WasteDayアプリケーションには自動アップデート機能が実装さ
 
 生成された公開鍵を `apps/desktop/src-tauri/tauri.conf.json` の `updater.pubkey` に設定してください。
 
-#### 2. アップデートサーバーの設定
+#### 2. アップデート設定（GitHub Releases使用）
 
-`tauri.conf.json` の `updater.endpoints` を実際のアップデートサーバーのURLに変更してください：
+`tauri.conf.json` の `updater.endpoints` は既にGitHub Releases APIに設定済みです：
 
 ```json
 {
   "updater": {
     "active": true,
     "endpoints": [
-      "https://your-update-server.com/{{target}}/{{arch}}/{{current_version}}"
+      "https://api.github.com/repos/takapi-s/wasteday/releases/latest"
     ],
     "dialog": true,
     "pubkey": "YOUR_GENERATED_PUBLIC_KEY"
@@ -51,35 +51,36 @@ git push origin v1.0.0
 
 GitHub Actionsが自動的にリリースをビルドし、GitHub Releasesにアップロードします。
 
-#### 4. アップデートサーバーへのアップロード
+#### 4. GitHub Releasesによる自動配信
 
-リリース後、以下のファイルをアップデートサーバーにアップロードしてください：
+GitHub Actionsが自動的に以下のファイルをGitHub Releasesにアップロードします：
 
 - `wasteday_1.0.0_x64_en-US.msi` (Windows MSI)
 - `wasteday_1.0.0_x64-setup.exe` (Windows NSIS)
 - `wasteday_1.0.0_x64.AppImage` (Linux)
 - `wasteday_1.0.0_x64.dmg` (macOS)
 
-### アップデートサーバーの要件
+### GitHub Releases API
 
-アップデートサーバーは以下のエンドポイントを提供する必要があります：
+Tauriは自動的にGitHub Releases APIから最新リリース情報を取得します：
 
 ```
-GET /{target}/{arch}/{current_version}
+GET https://api.github.com/repos/takapi-s/wasteday/releases/latest
 ```
 
 レスポンス例：
 ```json
 {
-  "version": "1.0.1",
-  "notes": "バグ修正とパフォーマンス改善",
-  "pub_date": "2024-01-01T00:00:00Z",
-  "platforms": {
-    "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkK...",
-      "url": "https://releases.wasteday.app/wasteday_1.0.1_x64-setup.exe"
+  "tag_name": "v1.0.1",
+  "name": "v1.0.1",
+  "body": "バグ修正とパフォーマンス改善",
+  "published_at": "2024-01-01T00:00:00Z",
+  "assets": [
+    {
+      "name": "wasteday_1.0.1_x64-setup.exe",
+      "browser_download_url": "https://github.com/takapi-s/wasteday/releases/download/v1.0.1/wasteday_1.0.1_x64-setup.exe"
     }
-  }
+  ]
 }
 ```
 
@@ -92,9 +93,10 @@ GET /{target}/{arch}/{current_version}
 ### トラブルシューティング
 
 1. **アップデートが検出されない場合**
-   - アップデートサーバーのURLが正しいか確認
+   - GitHub Releases APIのアクセス権限を確認
    - ネットワーク接続を確認
    - アプリのバージョンが正しく設定されているか確認
+   - GitHub Releasesに最新バージョンが公開されているか確認
 
 2. **インストールに失敗する場合**
    - 管理者権限でアプリを実行
