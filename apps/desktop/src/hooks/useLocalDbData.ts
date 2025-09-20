@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { TimeSeriesPoint, TopItem } from '@wasteday/ui';
+import { useCategoryEventEmitter } from './useCategoryEventEmitter';
 
 type DashboardData = {
   todayActiveSeconds: number;
@@ -46,6 +47,7 @@ export const useLocalDbData = (options: DashboardQueryOptions = {}): DashboardDa
     loading: true,
     error: null,
   });
+  const { subscribe } = useCategoryEventEmitter();
 
   useEffect(() => {
     const rangeHours = Math.min(24, Math.max(1, Math.floor(options.rangeHours ?? 24)));
@@ -145,11 +147,11 @@ export const useLocalDbData = (options: DashboardQueryOptions = {}): DashboardDa
 
         const topWaste: TopItem[] = Array.from(wasteSecondsById.entries())
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
+          .slice(0, 7)
           .map(([label, seconds]) => ({ label, seconds }));
         const topProductive: TopItem[] = Array.from(productiveSecondsById.entries())
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
+          .slice(0, 7)
           .map(([label, seconds]) => ({ label, seconds }));
         const topIdentifiers: TopItem[] = topWaste;
 
@@ -189,6 +191,17 @@ export const useLocalDbData = (options: DashboardQueryOptions = {}): DashboardDa
     const interval = setInterval(fetchData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [options.rangeHours, options.binMinutes]);
+
+  // カテゴリー変更イベントを監視してデータを再取得
+  useEffect(() => {
+    const unsubscribe = subscribe((event) => {
+      console.log('[useLocalDbData] Category change detected, refreshing data...', event);
+      // データ再取得のトリガーとして状態をリセット
+      setData(prev => ({ ...prev, loading: true }));
+    });
+
+    return unsubscribe;
+  }, [subscribe]);
 
   return data;
 };

@@ -4,15 +4,18 @@ import { useDarkMode } from '../hooks/useDarkMode';
 import { SettingsPage as SharedSettingsPage } from '@wasteday/ui';
 
 export const SettingsPage: React.FC = () => {
-  const { autostartEnabled, toggleAutostart } = useIngest();
+  const { autostartEnabled, toggleAutostart, updateGapThreshold } = useIngest();
   const { theme, setLightMode, setDarkMode, setSystemMode } = useDarkMode();
 
-  const handleSaveSettings = (settings: { idleThreshold: number; gapThreshold: number }) => {
+  const handleSaveSettings = (settings: { gapThreshold: number }) => {
     // Persist to localStorage for now; can be moved to Supabase user settings later
     try {
-      // goalDailyWasteMinutes は廃止
-    } catch {}
-    console.log('Settings saved:', settings);
+      localStorage.setItem('wasteday-gap-threshold', settings.gapThreshold.toString());
+      updateGapThreshold(settings.gapThreshold);
+      console.log('Settings saved:', settings);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+    }
   };
 
   const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {

@@ -7,6 +7,7 @@ import { useDatabaseStatus } from '../hooks/useDatabaseStatus';
 // import { useMonthlyData } from '../hooks/useMonthlyData';
 import { useLocalWeeklyData } from '../hooks/useLocalWeeklyData';
 import { useLocalMonthlyData } from '../hooks/useLocalMonthlyData';
+import { useWeeklyCalendarData } from '../hooks/useWeeklyCalendarData';
 
 export const DashboardPage: React.FC = () => {
   const rangeHours = 24; // 過去24時間に変更
@@ -30,6 +31,7 @@ export const DashboardPage: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = React.useState<'today' | 'week' | 'month'>('today');
   const { weeklyData, loading: weeklyLoading, error: weeklyError } = useLocalWeeklyData(weekOffset);
   const { monthlyData, loading: monthlyLoading, error: monthlyError } = useLocalMonthlyData(monthOffset);
+  const { weeklyData: weeklyCalendarData, loading: weeklyCalendarLoading, error: weeklyCalendarError } = useWeeklyCalendarData(weekOffset);
 
   // デバッグ: 受け取ったダッシュボード用データをログ
   React.useEffect(() => {
@@ -42,7 +44,7 @@ export const DashboardPage: React.FC = () => {
     });
   }, [sessionsCount, last24hSeries, topIdentifiers]);
 
-  if (loading || weeklyLoading || monthlyLoading) {
+  if (loading || weeklyLoading || monthlyLoading || weeklyCalendarLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-gray-500 dark:text-gray-400">Loading dashboard data...</div>
@@ -52,9 +54,9 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <>
-      {(error || weeklyError || monthlyError) && (
+      {(error || weeklyError || monthlyError || weeklyCalendarError) && (
         <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-700 dark:text-red-300">
-          Error loading data: {error || weeklyError || monthlyError}
+          Error loading data: {error || weeklyError || monthlyError || weeklyCalendarError}
         </div>
       )}
       <SharedDashboard
@@ -71,6 +73,7 @@ export const DashboardPage: React.FC = () => {
         rangeHours={rangeHours}
         binMinutes={binMinutes}
         weeklyData={weeklyData || undefined}
+        weeklyCalendarData={weeklyCalendarData || undefined}
         monthlyData={monthlyData || undefined}
         currentWeekOffset={weekOffset}
         onChangeWeekOffset={setWeekOffset}

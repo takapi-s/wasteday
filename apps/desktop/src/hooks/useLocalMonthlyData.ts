@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { MonthlyData, WeeklyData, CalendarDay } from '@wasteday/ui';
+import { useCategoryEventEmitter } from './useCategoryEventEmitter';
 
 type LocalSession = { id: string; start_time: string; duration_seconds: number; session_key: string };
 type WasteCategory = { id?: number; type: string; identifier: string; label: 'waste' | 'productive' | string; is_active: boolean };
@@ -9,6 +10,7 @@ export const useLocalMonthlyData = (offsetMonths: number = 0) => {
   const [monthlyData, setMonthlyData] = useState<MonthlyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { subscribe } = useCategoryEventEmitter();
 
   useEffect(() => {
     const fetchMonthlyData = async () => {
@@ -153,6 +155,16 @@ export const useLocalMonthlyData = (offsetMonths: number = 0) => {
     const interval = setInterval(fetchMonthlyData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [offsetMonths]);
+
+  // カテゴリー変更イベントを監視してデータを再取得
+  useEffect(() => {
+    const unsubscribe = subscribe((event) => {
+      console.log('[useLocalMonthlyData] Category change detected, refreshing data...', event);
+      setLoading(true);
+    });
+
+    return unsubscribe;
+  }, [subscribe]);
 
   return { monthlyData, loading, error };
 };

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { AppCategory } from '@wasteday/ui';
+import { categoryEventEmitter } from './useCategoryEventEmitter';
 
 type AppCategoriesData = {
   categories: AppCategory[];
@@ -135,6 +136,13 @@ export const useLocalAppCategories = (): AppCategoriesData & {
         )
       }));
 
+      // カテゴリー変更後にデータを再取得して他画面への反映を確実にする
+      console.log('[useLocalAppCategories] Category updated, refreshing data...');
+      await fetchCategories();
+
+      // 他のコンポーネントに変更を通知
+      categoryEventEmitter.notifyCategoryUpdated(id, label);
+
     } catch (err) {
       console.error('Failed to update category:', err);
       throw err;
@@ -161,6 +169,13 @@ export const useLocalAppCategories = (): AppCategoriesData & {
           cat.id === id ? { ...cat, is_active, updated_at: new Date().toISOString() } : cat
         )
       }));
+
+      // アクティブ状態変更後にデータを再取得
+      console.log('[useLocalAppCategories] Active status updated, refreshing data...');
+      await fetchCategories();
+
+      // 他のコンポーネントに変更を通知
+      categoryEventEmitter.notifyCategoryActiveToggled(id, is_active);
 
     } catch (err) {
       console.error('Failed to toggle active status:', err);
@@ -198,6 +213,13 @@ export const useLocalAppCategories = (): AppCategoriesData & {
         discovered: prev.discovered.filter(d => !(d.type === payload.type && d.identifier.toLowerCase() === payload.identifier.toLowerCase())),
       }));
 
+      // カテゴリー追加後にデータを再取得して他画面への反映を確実にする
+      console.log('[useLocalAppCategories] Category added, refreshing data...');
+      await fetchCategories();
+
+      // 他のコンポーネントに変更を通知
+      categoryEventEmitter.notifyCategoryAdded(newCategory.id, newCategory);
+
     } catch (err) {
       console.error('Failed to add category:', err);
       throw err;
@@ -211,6 +233,14 @@ export const useLocalAppCategories = (): AppCategoriesData & {
         ...prev,
         categories: prev.categories.filter(cat => cat.id !== id),
       }));
+
+      // カテゴリー削除後にデータを再取得
+      console.log('[useLocalAppCategories] Category deleted, refreshing data...');
+      await fetchCategories();
+
+      // 他のコンポーネントに変更を通知
+      categoryEventEmitter.notifyCategoryDeleted(id);
+
     } catch (err) {
       console.error('Failed to delete category:', err);
       throw err;

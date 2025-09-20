@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 export interface SettingsPageProps {
   autostartEnabled?: boolean;
   onToggleAutostart?: () => void;
-  onSaveSettings?: (settings: { idleThreshold: number; gapThreshold: number }) => void;
+  onSaveSettings?: (settings: { gapThreshold: number }) => void;
   // Dark mode props
   theme?: 'light' | 'dark' | 'system';
   onThemeChange?: (theme: 'light' | 'dark' | 'system') => void;
@@ -30,13 +30,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   className = "",
   showDatabaseStatus = false,
 }) => {
-  const [idleThreshold, setIdleThreshold] = useState(60);
-  const [gapThreshold, setGapThreshold] = useState(20);
+  const [gapThreshold, setGapThreshold] = useState(() => {
+    // Load saved gap threshold from localStorage if available
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('wasteday-gap-threshold');
+      return saved ? parseInt(saved, 10) : 20;
+    }
+    return 20;
+  });
   
 
   const handleSave = () => {
     if (onSaveSettings) {
-      onSaveSettings({ idleThreshold, gapThreshold });
+      onSaveSettings({ gapThreshold });
     }
   };
 
@@ -83,26 +89,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <label htmlFor="autostart-toggle" className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Autostart on login
             </label>
-          </div>
-
-          {/* Idle Threshold */}
-          <div>
-            <label htmlFor="idle-threshold" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Idle threshold seconds
-            </label>
-            <input
-              type="number"
-              id="idle-threshold"
-              min="5"
-              max="600"
-              step="5"
-              value={idleThreshold}
-              onChange={(e) => setIdleThreshold(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              User is considered idle after this many seconds of inactivity
-            </p>
           </div>
 
           {/* Gap Threshold */}

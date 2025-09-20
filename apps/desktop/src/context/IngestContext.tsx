@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { invoke } from "@tauri-apps/api/core";
-import { IngestService, type SampleEvent } from "@wasteday/ingest";
 import { isEnabled, enable, disable } from "@tauri-apps/plugin-autostart";
+import { useIngestUI } from '../hooks/useIngestUI';
+import { getSamplingService } from '../services/SamplingService';
 
 type ForegroundInfo = {
   process_id: number;
@@ -25,11 +26,11 @@ type SampleData = {
   identifier: string;
   window_title?: string;
   user_state: 'active' | 'idle';
+  idle_sec: number;
 };
 
-const IDLE_THRESHOLD_SECONDS = Number((import.meta as any).env?.VITE_IDLE_THRESHOLD_SECONDS ?? 60);
-
 type IngestContextValue = {
+  // サンプリングデータ
   currentInfo: (ForegroundInfo & { user_state: 'active' | 'idle', idle_sec: number }) | null;
   sessionKey: string;
   previousKey: string;
@@ -38,161 +39,32 @@ type IngestContextValue = {
   samples: SampleData[];
   pendingInserts: Map<string, SampleData>;
   etaText: string;
+  
+  // 自動起動設定
   autostartEnabled: boolean;
   toggleAutostart: () => Promise<void>;
+  
+  // 設定更新関数
+  updateGapThreshold: (gapThreshold: number) => void;
+  
+  // ユーティリティ関数
   colorForIdentifier: (identifier: string) => string;
   parseSessionKey: (key: string) => { category?: string; identifier?: string; user_state?: string };
+  
+  // 制御関数
+  startSampling: () => void;
+  stopSampling: () => void;
+  isRunning: boolean;
 };
 
 const IngestContext = createContext<IngestContextValue | undefined>(undefined);
 
 export const IngestProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentInfo, setCurrentInfo] = useState<ForegroundInfo & { user_state: 'active' | 'idle', idle_sec: number } | null>(null);
-  const [sessionKey, setSessionKey] = useState<string>('');
-  const [previousKey, setPreviousKey] = useState<string>('');
-  const [liveSession, setLiveSession] = useState<string>('');
-  const [events, setEvents] = useState<SessionEvent[]>([]);
-  const [samples, setSamples] = useState<SampleData[]>([]);
-  const [pendingInserts, setPendingInserts] = useState<Map<string, SampleData>>(new Map());
-  const [etaText, setEtaText] = useState<string>('');
+  const ingestUI = useIngestUI();
   const [autostartEnabled, setAutostartEnabled] = useState<boolean>(false);
+  const [processedEvents, setProcessedEvents] = useState<Set<string>>(new Set());
 
-  const ingestRef = useRef<IngestService | null>(null);
-  const lastEventTimeRef = useRef<number>(Date.now());
-  const lastEventTypeRef = useRef<'session_started' | 'session_updated' | 'session_ended' | null>(null);
-  const currentKeyRef = useRef<string | null>(null);
-
-  const colorForIdentifier = (identifier: string): string => {
-    let hash = 0;
-    for (let i = 0; i < identifier.length; i++) {
-      hash = ((hash << 5) - hash) + identifier.charCodeAt(i);
-      hash |= 0;
-    }
-    const hue = Math.abs(hash) % 360;
-    const sat = 65;
-    const light = 50;
-    return `hsl(${hue} ${sat}% ${light}%)`;
-  };
-
-  const sampleOnce = async (): Promise<ForegroundInfo & { user_state: 'active' | 'idle', idle_sec: number }> => {
-    const info = await invoke<ForegroundInfo>("get_foreground_info");
-    const idleSec = await invoke<number>("get_idle_seconds");
-    const user_state: 'active' | 'idle' = idleSec >= IDLE_THRESHOLD_SECONDS ? 'idle' : 'active';
-    return { ...info, user_state, idle_sec: idleSec };
-  };
-
-  const parseSessionKey = (key: string): { category?: string; identifier?: string; user_state?: string } => {
-    const obj: Record<string, string> = {};
-    for (const part of key.split(';')) {
-      const [k, v] = part.split('=');
-      if (k && v) obj[k] = v;
-    }
-    return { category: obj['category'], identifier: obj['identifier'], user_state: obj['user_state'] };
-  };
-
-  useEffect(() => {
-    if (ingestRef.current) return; // singleton
-
-    const ingest = new IngestService({ samplingIntervalMs: 5000, idleGapThresholdSeconds: 20 });
-    ingestRef.current = ingest;
-
-    ingest.onEvent(async (e) => {
-      const event: SessionEvent = {
-        type: e.type,
-        session_key: e.session_key,
-        start_time: e.start_time,
-        end_time: e.end_time,
-        duration_seconds: e.duration_seconds,
-        url: e.url,
-        window_title: e.window_title,
-      };
-
-      setEvents(prev => [event, ...prev.slice(0, 199)]);
-
-      try {
-        if (e.type === 'session_ended' && e.duration_seconds > 0) {
-          // ローカルDBへ保存（Tauri）
-          const id = `${e.start_time}-${e.session_key}`;
-          const session = { id, start_time: e.start_time, duration_seconds: e.duration_seconds, session_key: e.session_key };
-          await invoke('db_upsert_session', { session });
-          setPendingInserts(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(e.session_key);
-            return newMap;
-          });
-        }
-      } catch (err) {
-        console.error('[desktop][insertSession][localdb-error]', err);
-      }
-
-      lastEventTimeRef.current = Date.now();
-      lastEventTypeRef.current = e.type;
-
-      if (e.type === 'session_started') {
-        setPreviousKey(currentKeyRef.current || '');
-        currentKeyRef.current = e.session_key;
-      }
-
-      setLiveSession(`${e.start_time} → ${e.end_time} (${e.duration_seconds}s)`);
-    });
-
-    const interval = setInterval(async () => {
-      try {
-        const s = await sampleOnce();
-        setCurrentInfo(s);
-
-        const sample: SampleEvent = {
-          timestamp: new Date().toISOString(),
-          category: 'app',
-          identifier: (s.exe || 'unknown.exe').toLowerCase(),
-          window_title: s.window_title,
-          user_state: s.user_state,
-        };
-
-        ingest.handleSample(sample);
-
-        const key = `category=${sample.category};identifier=${sample.identifier};user_state=${sample.user_state}`;
-        setSessionKey(key);
-
-        setSamples(prev => [sample, ...prev.slice(0, 999)]);
-
-        const gapThresholdMs = 20 * 1000;
-        const elapsedMs = Date.now() - lastEventTimeRef.current;
-        let etaTextLocal = '';
-        if (lastEventTypeRef.current === 'session_updated' || lastEventTypeRef.current === 'session_started') {
-          etaTextLocal = 'ギャップ条件では挿入されません（連続更新中）。キー変更か終了時に挿入。';
-        } else {
-          const remain = Math.max(0, Math.ceil((gapThresholdMs - elapsedMs) / 1000));
-          etaTextLocal = remain > 0 ? `このキーが続けば約 ${remain}s 後にギャップで insert 見込み` : '条件を満たせば直ちに insert 見込み';
-        }
-        if (s.user_state === 'active') {
-          const toIdle = Math.max(0, IDLE_THRESHOLD_SECONDS - Math.floor(s.idle_sec));
-          etaTextLocal += toIdle > 0 ? ` / アイドル切替まで約 ${toIdle}s` : ' / まもなく idle 切替見込み';
-        }
-        setEtaText(etaTextLocal);
-
-        setPendingInserts(prev => {
-          const newMap = new Map(prev);
-          newMap.set(key, sample);
-          return newMap;
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    }, 5000);
-
-    (async () => {
-      try {
-        setAutostartEnabled(await isEnabled());
-      } catch {}
-    })();
-
-    return () => {
-      clearInterval(interval);
-      ingestRef.current = null;
-    };
-  }, []);
-
+  // 自動起動設定の管理
   const toggleAutostart = async () => {
     try {
       if (autostartEnabled) {
@@ -202,35 +74,126 @@ export const IngestProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         await enable();
         setAutostartEnabled(true);
       }
-    } catch (e) {
-      console.error('Failed to toggle autostart:', e);
+    } catch (error) {
+      console.error('自動起動設定の変更に失敗しました:', error);
     }
   };
 
-  const value = useMemo<IngestContextValue>(() => ({
-    currentInfo,
-    sessionKey,
-    previousKey,
-    liveSession,
-    events,
-    samples,
-    pendingInserts,
-    etaText,
+  // 自動起動状態の初期化とサンプリング開始
+  useEffect(() => {
+    const initAutostartStatus = async () => {
+      try {
+        const enabled = await isEnabled();
+        setAutostartEnabled(enabled);
+      } catch (error) {
+        console.error('自動起動状態の取得に失敗しました:', error);
+      }
+    };
+    initAutostartStatus();
+
+    // サンプリングを自動開始
+    console.log('[IngestContext] サンプリングを自動開始');
+    ingestUI.startSampling();
+  }, []);
+
+  // Gap Threshold設定の更新
+  const updateGapThreshold = (gapThreshold: number) => {
+    try {
+      const samplingService = getSamplingService();
+      samplingService.updateConfig({ idleGapThresholdSeconds: gapThreshold });
+      console.log('[IngestContext] Gap Threshold updated:', gapThreshold);
+    } catch (error) {
+      console.error('[IngestContext] Failed to update gap threshold:', error);
+    }
+  };
+
+  // セッション終了時のローカルDB保存処理
+  useEffect(() => {
+    const handleSessionEnd = async (event: SessionEvent) => {
+      if (event.type === 'session_ended' && event.duration_seconds > 0) {
+        try {
+          const id = `${event.start_time}-${event.session_key}`;
+          const session = { 
+            id, 
+            start_time: event.start_time, 
+            duration_seconds: event.duration_seconds, 
+            session_key: event.session_key 
+          };
+          await invoke('db_upsert_session', { session });
+          console.log('[IngestContext] セッションをローカルDBに保存:', session);
+        } catch (err) {
+          console.error('[IngestContext] ローカルDB保存エラー:', err);
+        }
+      }
+    };
+
+    // 新しく追加されたセッション終了イベントのみを処理（重複防止）
+    const sessionEndEvents = ingestUI.events.filter(event => 
+      event.type === 'session_ended' && 
+      !processedEvents.has(`${event.start_time}-${event.session_key}`)
+    );
+    
+    console.log(`[IngestContext] 処理対象のセッション終了イベント数: ${sessionEndEvents.length}`);
+    console.log(`[IngestContext] 総イベント数: ${ingestUI.events.length}, 処理済みイベント数: ${processedEvents.size}`);
+    
+    sessionEndEvents.forEach(event => {
+      const eventKey = `${event.start_time}-${event.session_key}`;
+      console.log(`[IngestContext] セッション終了イベントを処理中:`, {
+        eventKey,
+        duration: event.duration_seconds,
+        sessionKey: event.session_key
+      });
+      handleSessionEnd(event);
+      setProcessedEvents(prev => new Set([...prev, eventKey]));
+    });
+  }, [ingestUI.events, processedEvents]);
+
+  // コンテキスト値の構築
+  const contextValue: IngestContextValue = {
+    // サンプリングデータ
+    currentInfo: ingestUI.currentSample ? {
+      process_id: 0, // SamplingServiceからは取得していないので0
+      exe: ingestUI.currentSample.identifier,
+      window_title: ingestUI.currentSample.window_title || '',
+      user_state: ingestUI.currentSample.user_state,
+      idle_sec: ingestUI.currentSample.idle_sec,
+    } : null,
+    sessionKey: ingestUI.sessionKey,
+    previousKey: ingestUI.previousKey,
+    liveSession: ingestUI.liveSession,
+    events: ingestUI.events,
+    samples: ingestUI.samples,
+    pendingInserts: ingestUI.pendingInserts,
+    etaText: ingestUI.etaText,
+    
+    // 自動起動設定
     autostartEnabled,
     toggleAutostart,
-    colorForIdentifier,
-    parseSessionKey,
-  }), [currentInfo, sessionKey, previousKey, liveSession, events, samples, pendingInserts, etaText, autostartEnabled]);
+    
+    // 設定更新関数
+    updateGapThreshold,
+    
+    // ユーティリティ関数
+    colorForIdentifier: ingestUI.colorForIdentifier,
+    parseSessionKey: ingestUI.parseSessionKey,
+    
+    // 制御関数
+    startSampling: ingestUI.startSampling,
+    stopSampling: ingestUI.stopSampling,
+    isRunning: ingestUI.isRunning,
+  };
 
   return (
-    <IngestContext.Provider value={value}>{children}</IngestContext.Provider>
+    <IngestContext.Provider value={contextValue}>
+      {children}
+    </IngestContext.Provider>
   );
 };
 
 export const useIngest = (): IngestContextValue => {
-  const ctx = useContext(IngestContext);
-  if (!ctx) throw new Error('useIngest must be used within IngestProvider');
-  return ctx;
+  const context = useContext(IngestContext);
+  if (context === undefined) {
+    throw new Error('useIngest must be used within an IngestProvider');
+  }
+  return context;
 };
-
-
