@@ -5,58 +5,27 @@ WasteDayデスクトップアプリケーションと連携するChrome拡張機
 ## 機能
 
 - **自動ブラウジング追跡**: アクティブなタブの変更を監視し、ドメイン別の滞在時間を計測
-- **ネイティブメッセージング**: Chrome拡張機能とデスクトップアプリ間の安全な通信
+- **HTTP通信**: Chrome拡張機能とデスクトップアプリ間の軽量HTTP通信（localhost:5606）
 - **リアルタイムデータ送信**: ブラウジングデータをリアルタイムでWasteDayアプリに送信
+- **ヘルスチェック**: 接続状態の監視と自動回復
+- **ポップアップ統計**: 現在のセッション状況と接続状態を表示
 - **ドメイン分類**: 訪問したドメインを自動的に分類・管理
 
 ## インストール方法
 
 ### 1. デスクトップアプリの準備
 
-まず、WasteDayデスクトップアプリケーションをビルドしてインストールしてください：
+まず、WasteDayデスクトップアプリケーションを起動してください：
 
 ```bash
 cd apps/desktop
-npm run tauri build
+npm run tauri dev
 ```
 
-### 2. ネイティブメッセージングの設定
+または、リリース版をダウンロードしてインストール：
+- [GitHub Releases](https://github.com/takapi-s/wasteday/releases/latest) から最新版をダウンロード
 
-Windowsの場合、レジストリにネイティブメッセージングホストを登録する必要があります。
-
-#### Windows での設定
-
-1. 以下のレジストリキーを作成：
-   ```
-   HKEY_CURRENT_USER\SOFTWARE\Google\Chrome\NativeMessagingHosts\com.pocky.wasteday
-   ```
-
-2. 値として、WasteDayアプリの`native_messaging_host.exe`のパスを設定：
-   ```
-   C:\Users\[ユーザー名]\AppData\Local\wasteday\native_messaging_host.exe
-   ```
-
-#### macOS での設定
-
-1. 以下のディレクトリにマニフェストファイルを作成：
-   ```
-   ~/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.pocky.wasteday.json
-   ```
-
-2. マニフェストファイルの内容：
-   ```json
-   {
-     "name": "com.pocky.wasteday",
-     "description": "WasteDay Native Messaging Host",
-     "path": "/Applications/wasteday.app/Contents/MacOS/native_messaging_host",
-     "type": "stdio",
-     "allowed_origins": [
-       "chrome-extension://[拡張機能ID]/"
-     ]
-   }
-   ```
-
-### 3. Chrome拡張機能のインストール
+### 2. Chrome拡張機能のインストール
 
 1. Chrome拡張機能のデベロッパーモードを有効化
 2. 「パッケージ化されていない拡張機能を読み込む」をクリック
@@ -65,8 +34,9 @@ Windowsの場合、レジストリにネイティブメッセージングホス�
 ## 使用方法
 
 1. Chrome拡張機能をインストール後、拡張機能アイコンをクリック
-2. 「接続テスト」ボタンでデスクトップアプリとの接続を確認
+2. ポップアップで接続状態を確認（「接続済み」または「接続テスト」ボタンで確認）
 3. 通常通りブラウジングを行うと、自動的にデータが収集・送信されます
+4. ポップアップで現在のセッション状況や一時停止状態を確認できます
 
 ## データ収集内容
 
@@ -79,23 +49,26 @@ Windowsの場合、レジストリにネイティブメッセージングホス�
 
 ## プライバシー
 
-- データはローカルのWasteDayアプリケーションにのみ送信されます
+- データはローカルのWasteDayアプリケーション（localhost:5606）にのみ送信されます
 - 外部サーバーには一切送信されません
-- 収集されたデータは、ユーザーのローカルデータベースに保存されます
+- 収集されたデータは、ユーザーのローカルデータベース（SQLite）に保存されます
+- ブラウザが非フォーカス時は追跡を一時停止し、正確なアクティブ時間のみを記録します
 
 ## トラブルシューティング
 
 ### デスクトップアプリに接続できない
 
 1. WasteDayデスクトップアプリが起動していることを確認
-2. ネイティブメッセージングの設定が正しいことを確認
-3. Chrome拡張機能の接続テストを実行
+2. デスクトップアプリがポート5606でHTTPサーバーを起動していることを確認
+3. Chrome拡張機能の「接続テスト」ボタンを実行
+4. ブラウザで `http://127.0.0.1:5606/api/health` にアクセスして応答を確認
 
 ### データが送信されない
 
-1. 拡張機能の権限設定を確認
+1. 拡張機能の権限設定を確認（tabs, activeTab, storage, alarms）
 2. デスクトップアプリのログを確認
 3. Chrome拡張機能のデベロッパーツールでエラーを確認
+4. 一時停止ボタンが有効になっていないことを確認
 
 ## 開発
 
