@@ -4,6 +4,7 @@ version = "1.0.1"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
+default-run = "wasteday"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -40,4 +41,7 @@ log = "0.4"
 env_logger = "0.10"
 dirs = "5.0"
 chrono = { version = "0.4", features = ["serde"] }
+tiny_http = "0.12"
+
+# removed native_messaging_host bin (no longer used)
 

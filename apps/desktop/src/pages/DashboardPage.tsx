@@ -59,6 +59,8 @@ export const DashboardPage: React.FC = () => {
           Error loading data: {error || weeklyError || monthlyError || weeklyCalendarError}
         </div>
       )}
+      
+      {/* メインダッシュボード */}
       <SharedDashboard
         todayActiveSeconds={todayActiveSeconds}
         todayIdleSeconds={todayIdleSeconds}

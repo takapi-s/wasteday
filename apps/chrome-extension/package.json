@@ -1,0 +1,18 @@
+{
+  "name": "wasteday-chrome-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension for WasteDay desktop application",
+  "scripts": {
+    "build": "echo 'Chrome extension build completed'",
+    "dev": "echo 'Chrome extension development mode'",
+    "package": "zip -r wasteday-extension.zip . -x '*.git*' 'node_modules/*' '*.zip'"
+  },
+  "keywords": [
+    "chrome-extension",
+    "browser-tracking",
+    "wasteday",
+    "productivity"
+  ],
+  "author": "WasteDay Team",
+  "license": "MIT"
+}

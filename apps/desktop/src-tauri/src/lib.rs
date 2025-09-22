@@ -1,6 +1,6 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use serde::{Serialize, Deserialize};
-use log::{info, warn, error, debug};
+use log::{info, error};
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId};
 use windows::Win32::Foundation::HWND;
 use windows::Win32::UI::Input::KeyboardAndMouse::GetLastInputInfo;
@@ -16,6 +16,8 @@ use tauri_plugin_updater::UpdaterExt;
 use rusqlite::{Connection, params};
 use std::sync::Mutex;
 use std::fs;
+use std::io::Read;
+use tiny_http::{Server, Response, Method};
 
 #[derive(Serialize, Debug, Default)]
 pub struct ForegroundInfo {
@@ -64,15 +66,15 @@ fn get_idle_seconds() -> u64 {
     unsafe {
         #[repr(C)]
         struct LASTINPUTINFO {
-            cbSize: u32,
-            dwTime: u32,
+            cb_size: u32,
+            dw_time: u32,
         }
 
-        let mut li = LASTINPUTINFO { cbSize: std::mem::size_of::<LASTINPUTINFO>() as u32, dwTime: 0 };
+        let mut li = LASTINPUTINFO { cb_size: std::mem::size_of::<LASTINPUTINFO>() as u32, dw_time: 0 };
         let ok: BOOL = std::mem::transmute(GetLastInputInfo(std::mem::transmute(&mut li)));
         if ok.as_bool() {
-            let now = unsafe { GetTickCount() } as u64;
-            let last = li.dwTime as u64;
+            let now = GetTickCount() as u64;
+            let last = li.dw_time as u64;
             let diff = if now >= last { now - last } else { 0 };
             diff / 1000
         } else {
@@ -106,6 +108,12 @@ pub fn run() {
             db_list_waste_categories,
             db_upsert_waste_category,
             db_delete_waste_category,
+            db_upsert_browsing_session,
+            db_get_browsing_sessions,
+            db_delete_browsing_session,
+            db_upsert_domain,
+            db_get_domains,
+            db_classify_domain,
             check_for_updates,
             install_update,
             exit_app
@@ -362,6 +370,119 @@ pub fn run() {
                 }
             };
             info!("Application setup completed successfully");
+            // 軽量HTTPサーバ起動（127.0.0.1:5606）: /api/ingest/browsing
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn_blocking(move || {
+                if let Ok(server) = Server::http("127.0.0.1:5606") {
+                    info!("HTTP ingest server started on http://127.0.0.1:5606");
+                    for mut req in server.incoming_requests() {
+                        let url = req.url().to_string();
+                        let method = req.method().clone();
+                        // CORS preflight
+                        if method == Method::Options && url == "/api/ingest/browsing" {
+                            let mut resp = Response::empty(204);
+                            let _ = resp.add_header(tiny_http::Header::from_bytes(
+                                &b"Access-Control-Allow-Origin"[..],
+                                &b"*"[..],
+                            ).unwrap());
+                            let _ = resp.add_header(tiny_http::Header::from_bytes(
+                                &b"Access-Control-Allow-Methods"[..],
+                                &b"POST, OPTIONS"[..],
+                            ).unwrap());
+                            let _ = resp.add_header(tiny_http::Header::from_bytes(
+                                &b"Access-Control-Allow-Headers"[..],
+                                &b"Content-Type"[..],
+                            ).unwrap());
+                            let _ = req.respond(resp);
+                            continue;
+                        }
+                        if method == Method::Get && url == "/api/health" {
+                            let mut resp = Response::from_string("ok").with_status_code(200);
+                            let _ = resp.add_header(tiny_http::Header::from_bytes(
+                                &b"Access-Control-Allow-Origin"[..],
+                                &b"*"[..],
+                            ).unwrap());
+                            let _ = req.respond(resp);
+                        } else if method == Method::Post && url == "/api/ingest/browsing" {
+                            let mut body = String::new();
+                            let _ = req.as_reader().read_to_string(&mut body);
+                            match serde_json::from_str::<BrowserData>(&body) {
+                                Ok(b) => {
+                                    // DB保存: domains から category_id を取得し、browsing_sessions を UPSERT
+                                    if let Some(db) = app_handle.try_state::<Db>() {
+                                        if let Ok(conn_guard) = db.0.lock() {
+                                            // 既存の domains からカテゴリ取得
+                                            let mut category_id: Option<i64> = None;
+                                            if let Ok(mut stmt) = conn_guard.prepare("SELECT category_id FROM domains WHERE domain = ?1 AND is_active = 1") {
+                                                if let Ok(val) = stmt.query_row(params![b.domain.clone()], |row| row.get(0)) { category_id = val; }
+                                            }
+
+                                            let tab_id_val: i32 = b.tab_id.unwrap_or(0) as i32;
+                                            let record_id = format!("{}-{}-{}", b.timestamp, b.domain, tab_id_val);
+                                            let _ = conn_guard.execute(
+                                                "INSERT INTO browsing_sessions(id, domain, url, title, start_time, duration_seconds, category_id, tab_id) \
+                                                 VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) \
+                                                 ON CONFLICT(id) DO UPDATE SET \
+                                                   domain=excluded.domain, url=excluded.url, title=excluded.title, \
+                                                   duration_seconds=excluded.duration_seconds, category_id=excluded.category_id, \
+                                                   updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')",
+                                                params![
+                                                    record_id,
+                                                    b.domain,
+                                                    b.url,
+                                                    b.title,
+                                                    b.timestamp,
+                                                    (b.duration.unwrap_or(0) as i64),
+                                                    category_id,
+                                                    tab_id_val,
+                                                ],
+                                            );
+                                            let mut resp = Response::from_string("ok").with_status_code(200);
+                                            let _ = resp.add_header(tiny_http::Header::from_bytes(
+                                                &b"Access-Control-Allow-Origin"[..],
+                                                &b"*"[..],
+                                            ).unwrap());
+                                            let _ = resp.add_header(tiny_http::Header::from_bytes(
+                                                &b"Access-Control-Allow-Headers"[..],
+                                                &b"Content-Type"[..],
+                                            ).unwrap());
+                                            let _ = req.respond(resp);
+                                            continue;
+                                        }
+                                    }
+                                    let mut resp = Response::from_string("db error").with_status_code(500);
+                                    let _ = resp.add_header(tiny_http::Header::from_bytes(
+                                        &b"Access-Control-Allow-Origin"[..],
+                                        &b"*"[..],
+                                    ).unwrap());
+                                    let _ = req.respond(resp);
+                                }
+                                Err(_) => {
+                                    let mut resp = Response::from_string("bad request").with_status_code(400);
+                                    let _ = resp.add_header(tiny_http::Header::from_bytes(
+                                        &b"Access-Control-Allow-Origin"[..],
+                                        &b"*"[..],
+                                    ).unwrap());
+                                    let _ = resp.add_header(tiny_http::Header::from_bytes(
+                                        &b"Access-Control-Allow-Headers"[..],
+                                        &b"Content-Type"[..],
+                                    ).unwrap());
+                                    let _ = req.respond(resp);
+                                }
+                            }
+                        } else {
+                            let mut resp = Response::from_string("not found").with_status_code(404);
+                            let _ = resp.add_header(tiny_http::Header::from_bytes(
+                                &b"Access-Control-Allow-Origin"[..],
+                                &b"*"[..],
+                            ).unwrap());
+                            let _ = req.respond(resp);
+                        }
+                    }
+                } else {
+                    error!("Failed to start HTTP ingest server");
+                }
+            });
             Ok(())
         })
         .run(tauri::generate_context!())
@@ -417,7 +538,7 @@ async fn exit_app(app: AppHandle) -> Result<(), String> {
 }
 
 fn apply_schema(conn: &mut Connection) -> rusqlite::Result<()> {
-    // Minimal schema (sessions, waste_categories, user_settings)
+    // Minimal schema (sessions, waste_categories, user_settings, browsing_sessions, domains)
     let sql = r#"
     PRAGMA foreign_keys = ON;
     CREATE TABLE IF NOT EXISTS sessions (
@@ -444,6 +565,31 @@ fn apply_schema(conn: &mut Connection) -> rusqlite::Result<()> {
       value TEXT NOT NULL,
       updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
+    CREATE TABLE IF NOT EXISTS browsing_sessions (
+      id TEXT PRIMARY KEY,
+      domain TEXT NOT NULL,
+      url TEXT NOT NULL,
+      title TEXT,
+      start_time TEXT NOT NULL,
+      duration_seconds INTEGER DEFAULT 0,
+      category_id INTEGER,
+      tab_id INTEGER,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      FOREIGN KEY (category_id) REFERENCES waste_categories (id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_browsing_sessions_domain ON browsing_sessions(domain);
+    CREATE INDEX IF NOT EXISTS idx_browsing_sessions_start_time ON browsing_sessions(start_time);
+    CREATE TABLE IF NOT EXISTS domains (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      domain TEXT UNIQUE NOT NULL,
+      category_id INTEGER,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      FOREIGN KEY (category_id) REFERENCES waste_categories (id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_domains_domain ON domains(domain);
     "#;
     conn.execute_batch(sql)?;
     Ok(())
@@ -465,6 +611,36 @@ struct WasteCategory {
     identifier: String,
     label: String,       // "waste" | "productive"
     is_active: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct BrowsingSession {
+    id: String,
+    domain: String,
+    url: String,
+    title: Option<String>,
+    start_time: String,
+    duration_seconds: i64,
+    category_id: Option<i64>,
+    tab_id: Option<i32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct Domain {
+    id: Option<i64>,
+    domain: String,
+    category_id: Option<i64>,
+    is_active: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct BrowserData {
+    url: String,
+    domain: String,
+    title: String,
+    timestamp: String,
+    duration: Option<u64>,
+    tab_id: Option<u32>,
 }
 
 // ====== sessions commands ======
@@ -577,4 +753,137 @@ fn db_set_user_setting(state: State<Db>, key: String, value: String) -> Result<(
         )
         .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+// ====== browsing_sessions commands ======
+#[tauri::command]
+fn db_upsert_browsing_session(state: State<Db>, session: BrowsingSession) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|_| "db lock poisoned".to_string())?;
+    conn.execute(
+        "INSERT INTO browsing_sessions(id, domain, url, title, start_time, duration_seconds, category_id, tab_id) 
+         VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+         ON CONFLICT(id) DO UPDATE SET 
+         domain=excluded.domain, url=excluded.url, title=excluded.title, 
+         duration_seconds=excluded.duration_seconds, category_id=excluded.category_id, 
+         updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')",
+        params![
+            session.id, 
+            session.domain, 
+            session.url, 
+            session.title, 
+            session.start_time, 
+            session.duration_seconds, 
+            session.category_id,
+            session.tab_id
+        ],
+    ).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[derive(Deserialize)]
+struct BrowsingSessionsQuery { 
+    since: Option<String>, 
+    until: Option<String>,
+    domain: Option<String>,
+}
+
+#[tauri::command]
+fn db_get_browsing_sessions(state: State<Db>, query: BrowsingSessionsQuery) -> Result<Vec<BrowsingSession>, String> {
+    let conn = state.0.lock().map_err(|_| "db lock poisoned".to_string())?;
+    let mut sql = String::from("SELECT id, domain, url, title, start_time, duration_seconds, category_id, tab_id FROM browsing_sessions");
+    let mut clauses: Vec<&str> = Vec::new();
+    let mut binds: Vec<String> = Vec::new();
+    
+    if let Some(s) = query.since.as_ref() { 
+        clauses.push("start_time >= ?"); 
+        binds.push(s.clone()); 
+    }
+    if let Some(u) = query.until.as_ref() { 
+        clauses.push("start_time < ?"); 
+        binds.push(u.clone()); 
+    }
+    if let Some(d) = query.domain.as_ref() { 
+        clauses.push("domain = ?"); 
+        binds.push(d.clone()); 
+    }
+    
+    if !clauses.is_empty() { 
+        sql.push_str(" WHERE "); 
+        sql.push_str(&clauses.join(" AND ")); 
+    }
+    sql.push_str(" ORDER BY start_time DESC");
+    
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let rows = stmt.query_map(rusqlite::params_from_iter(binds.iter()), |row| {
+        Ok(BrowsingSession {
+            id: row.get(0)?,
+            domain: row.get(1)?,
+            url: row.get(2)?,
+            title: row.get(3)?,
+            start_time: row.get(4)?,
+            duration_seconds: row.get(5)?,
+            category_id: row.get(6)?,
+            tab_id: row.get(7)?,
+        })
+    }).map_err(|e| e.to_string())?;
+    
+    let mut out = Vec::new();
+    for r in rows { 
+        out.push(r.map_err(|e| e.to_string())?); 
+    }
+    Ok(out)
+}
+
+#[tauri::command]
+fn db_delete_browsing_session(state: State<Db>, id: String) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|_| "db lock poisoned".to_string())?;
+    conn.execute("DELETE FROM browsing_sessions WHERE id = ?1", params![id]).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// ====== domains commands ======
+#[tauri::command]
+fn db_upsert_domain(state: State<Db>, domain: Domain) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|_| "db lock poisoned".to_string())?;
+    conn.execute(
+        "INSERT INTO domains(domain, category_id, is_active) VALUES(?1, ?2, ?3)
+         ON CONFLICT(domain) DO UPDATE SET category_id=excluded.category_id, is_active=excluded.is_active, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')",
+        params![domain.domain, domain.category_id, if domain.is_active {1} else {0}],
+    ).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn db_get_domains(state: State<Db>) -> Result<Vec<Domain>, String> {
+    let conn = state.0.lock().map_err(|_| "db lock poisoned".to_string())?;
+    let mut stmt = conn.prepare("SELECT id, domain, category_id, is_active FROM domains WHERE is_active IN (0,1) ORDER BY domain")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt.query_map([], |row| {
+        Ok(Domain {
+            id: row.get(0)?,
+            domain: row.get(1)?,
+            category_id: row.get(2)?,
+            is_active: {
+                let v: i64 = row.get(3)?; v != 0
+            },
+        })
+    }).map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for r in rows { out.push(r.map_err(|e| e.to_string())?); }
+    Ok(out)
+}
+
+#[tauri::command]
+fn db_classify_domain(state: State<Db>, domain_name: String) -> Result<Option<i64>, String> {
+    let conn = state.0.lock().map_err(|_| "db lock poisoned".to_string())?;
+    let mut stmt = conn.prepare("SELECT category_id FROM domains WHERE domain = ?1 AND is_active = 1")
+        .map_err(|e| e.to_string())?;
+    
+    let mut rows = stmt.query(params![domain_name]).map_err(|e| e.to_string())?;
+    if let Some(row) = rows.next().map_err(|e| e.to_string())? {
+        let category_id: Option<i64> = row.get(0).map_err(|e| e.to_string())?;
+        Ok(category_id)
+    } else {
+        Ok(None)
+    }
 }
