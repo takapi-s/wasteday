@@ -6,13 +6,20 @@ import { useCategoryEventEmitter } from './useCategoryEventEmitter';
 type LocalSession = { id: string; start_time: string; duration_seconds: number; session_key: string };
 type WasteCategory = { id?: number; type: string; identifier: string; label: 'waste' | 'productive' | string; is_active: boolean };
 
-export const useLocalWeeklyData = (offsetWeeks: number = 0) => {
+export const useLocalWeeklyData = (offsetWeeks: number | undefined = 0) => {
   const [weeklyData, setWeeklyData] = useState<WeeklyData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(offsetWeeks !== undefined);
   const [error, setError] = useState<string | null>(null);
   const { subscribe } = useCategoryEventEmitter();
 
   useEffect(() => {
+    // offsetWeeksがundefinedの場合はデータを取得しない
+    if (offsetWeeks === undefined) {
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     const fetchWeeklyData = async () => {
       try {
         setLoading(true);

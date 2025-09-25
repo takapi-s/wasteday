@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import path from "path";
 import react from "@vitejs/plugin-react";
 
 // @ts-expect-error process is a nodejs global
@@ -29,8 +30,18 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
     fs: {
-      // Allow serving files from one level up to the project root
-      allow: ['..']
+      // Allow serving files from monorepo packages (e.g., @wasteday/ui)
+      allow: [
+        '..',
+        path.resolve(__dirname, '../../packages/ui'),
+      ]
     }
+  },
+  resolve: {
+    alias: {
+      // Use source of @wasteday/ui during dev for immediate reflection
+      '@wasteday/ui': path.resolve(__dirname, '../../packages/ui/src'),
+    },
+    dedupe: ['react', 'react-dom'],
   },
 }));

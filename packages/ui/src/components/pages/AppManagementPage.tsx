@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 export type AppCategory = {
   id: string;
@@ -21,6 +21,16 @@ export interface AppManagementPageProps {
   discovered?: { type: 'app' | 'domain'; identifier: string; lastSeen: string; count: number }[];
   onAddCategory?: (payload: { name: string; type: 'app' | 'domain'; identifier: string; label?: 'waste' | 'neutral' | 'study' }) => Promise<void>;
   onDeleteCategory?: (id: string) => Promise<void>;
+  // browsing data for browser tab
+  browsingSessions?: Array<{
+    id: string;
+    domain: string;
+    url: string;
+    title?: string;
+    start_time: string;
+    duration_seconds: number;
+    category_id?: number;
+  }>;
 }
 
 export const AppManagementPage: React.FC<AppManagementPageProps> = ({
@@ -32,17 +42,47 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
   discovered = [],
   onAddCategory,
   onDeleteCategory,
+  browsingSessions = [],
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'app' | 'domain'>('all');
   const [filterLabel, setFilterLabel] = useState<'all' | 'waste' | 'neutral' | 'study'>('all');
+  const [activeTab, setActiveTab] = useState<'window' | 'browser'>('window');
+
+  // Browserタブ用のドメインデータを生成（既存カテゴリに含まれていないもののみ）
+  const browserDomains = useMemo(() => {
+    // 既存のドメインカテゴリのidentifierを取得
+    const existingDomains = new Set(
+      categories
+        .filter(cat => cat.type === 'domain')
+        .map(cat => cat.identifier.toLowerCase())
+    );
+
+    const domainMap = new Map<string, number>();
+    for (const session of browsingSessions) {
+      const dur = Math.max(0, session.duration_seconds || 0);
+      if (!session.domain) continue;
+      
+      // 既存カテゴリに含まれていないドメインのみを対象
+      if (!existingDomains.has(session.domain.toLowerCase())) {
+        domainMap.set(session.domain, (domainMap.get(session.domain) || 0) + dur);
+      }
+    }
+    return Array.from(domainMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20)
+      .map(([domain, seconds]) => ({ domain, seconds }));
+  }, [browsingSessions, categories]);
 
   const filteredCategories = categories.filter(category => {
     const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          category.identifier.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || category.type === filterType;
     const matchesLabel = filterLabel === 'all' || category.label === filterLabel;
-    return matchesSearch && matchesType && matchesLabel;
+    const matchesTab = (activeTab === 'window' && category.type === 'app') ||
+                          (activeTab === 'browser' && category.type === 'domain');
+    
+    return matchesSearch && matchesType && matchesLabel && matchesTab;
   });
 
   const getLabelColor = (label: string) => {
@@ -73,10 +113,37 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
     );
   }
 
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">App Management</h1>
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-4">
+        <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <button
+            className={`px-4 py-2 text-sm font-medium ${
+              activeTab === 'window'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+            onClick={() => setActiveTab('window')}
+          >
+            Window
+          </button>
+          <button
+            className={`px-4 py-2 text-sm font-medium border-l border-gray-200 dark:border-gray-700 ${
+              activeTab === 'browser'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+            onClick={() => setActiveTab('browser')}
+          >
+            Browser
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -130,14 +197,14 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-            Applications & Domains ({filteredCategories.length})
+            {activeTab === 'window' ? 'Desktop Applications' : 'Browser Domains'} ({filteredCategories.length})
           </h3>
         </div>
         
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
           {filteredCategories.length === 0 ? (
             <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-              No applications found matching your filters.
+              No {activeTab === 'window' ? 'desktop applications' : 'browser domains'} found matching your filters.
             </div>
           ) : (
             filteredCategories.map((category) => {
@@ -230,39 +297,96 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
         </div>
       </div>
 
-      {/* Discovered from sessions */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-            Discovered (last 30 days)
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Not registered yet. Add as Neutral by default.</p>
-        </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {(!discovered || discovered.length === 0) ? (
-            <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No unregistered apps/domains detected.</div>
-          ) : (
-            discovered.map((d) => (
-              <div key={`${d.type}-${d.identifier}`} className="px-4 py-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{d.identifier}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{d.type} · last seen {new Date(d.lastSeen).toLocaleString()} · {d.count} sessions</div>
-                  </div>
-                  {onAddCategory && (
-                    <button
-                      onClick={() => onAddCategory({ name: d.identifier, type: d.type, identifier: d.identifier, label: 'neutral' })}
-                      className="px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Add as Neutral
-                    </button>
-                  )}
-                </div>
+      {/* Browser tab: Show browsing domains */}
+      {activeTab === 'browser' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+              Recent Browser Domains ({browserDomains.length})
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Domains from browsing sessions. Click to add as category.</p>
+          </div>
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            {browserDomains.length === 0 ? (
+              <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                No browsing data available.
               </div>
-            ))
-          )}
+            ) : (
+              browserDomains.map((item) => (
+                <div key={item.domain} className="px-4 py-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.domain}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {Math.floor(item.seconds / 60)} minutes total
+                      </div>
+                    </div>
+                    {onAddCategory && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await onAddCategory({ 
+                              name: item.domain, 
+                              type: 'domain', 
+                              identifier: item.domain, 
+                              label: 'neutral' 
+                            });
+                            // カテゴリ追加後、このドメインは既存カテゴリに含まれるため
+                            // browserDomainsから自動的に除外される
+                          } catch (error) {
+                            console.error('Failed to add category:', error);
+                          }
+                        }}
+                        className="px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Add as Category
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Discovered from sessions (for window tab) */}
+      {activeTab === 'window' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+              Discovered Desktop Apps (last 30 days)
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Not registered yet. Add as Neutral by default.</p>
+          </div>
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            {(!discovered || discovered.length === 0) ? (
+              <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                No unregistered desktop applications detected.
+              </div>
+            ) : (
+              discovered.filter(d => d.type === 'app').map((d) => (
+                <div key={`${d.type}-${d.identifier}`} className="px-4 py-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{d.identifier}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{d.type} · last seen {new Date(d.lastSeen).toLocaleString()} · {d.count} sessions</div>
+                    </div>
+                    {onAddCategory && (
+                      <button
+                        onClick={() => onAddCategory({ name: d.identifier, type: d.type, identifier: d.identifier, label: 'neutral' })}
+                        className="px-3 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Add as Neutral
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">

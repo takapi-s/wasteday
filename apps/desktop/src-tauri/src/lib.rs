@@ -114,6 +114,7 @@ pub fn run() {
             db_upsert_domain,
             db_get_domains,
             db_classify_domain,
+            db_reclassify_browsing_sessions,
             check_for_updates,
             install_update,
             exit_app
@@ -839,6 +840,29 @@ fn db_delete_browsing_session(state: State<Db>, id: String) -> Result<(), String
     let conn = state.0.lock().map_err(|_| "db lock poisoned".to_string())?;
     conn.execute("DELETE FROM browsing_sessions WHERE id = ?1", params![id]).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+// ====== reclassify browsing_sessions by latest domains mapping ======
+#[tauri::command]
+fn db_reclassify_browsing_sessions(state: State<Db>, since: Option<String>, until: Option<String>) -> Result<u64, String> {
+    let conn = state.0.lock().map_err(|_| "db lock poisoned".to_string())?;
+
+    // Build optional WHERE clause
+    let mut clauses: Vec<&str> = Vec::new();
+    let mut binds: Vec<String> = Vec::new();
+    if let Some(s) = since.as_ref() { clauses.push("start_time >= ?"); binds.push(s.clone()); }
+    if let Some(u) = until.as_ref() { clauses.push("start_time < ?"); binds.push(u.clone()); }
+
+    // Update browsing_sessions.category_id by current domains.category_id
+    // Only update when domains.is_active = 1
+    let mut sql = String::from("UPDATE browsing_sessions AS bs SET category_id = (SELECT d.category_id FROM domains d WHERE d.domain = bs.domain AND d.is_active = 1) ");
+    if !clauses.is_empty() {
+        sql.push_str("WHERE ");
+        sql.push_str(&clauses.join(" AND "));
+    }
+
+    let affected = conn.execute(&sql, rusqlite::params_from_iter(binds.iter())).map_err(|e| e.to_string())? as u64;
+    Ok(affected)
 }
 
 // ====== domains commands ======

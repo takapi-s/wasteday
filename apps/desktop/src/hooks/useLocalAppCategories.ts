@@ -54,7 +54,7 @@ export const useLocalAppCategories = (): AppCategoriesData & {
       // カテゴリをAppCategory形式に変換
       console.log('[useLocalAppCategories] Raw categories from DB:', categories);
       
-      const appCategories: AppCategory[] = categories.map(cat => {
+      const mapped: AppCategory[] = categories.map(cat => {
         // identifierが空や不正な値の場合は、より適切な名前を生成
         let displayName = cat.identifier;
         if (!displayName || displayName === '(app)' || displayName === '(domain)' || displayName.length < 2) {
@@ -79,6 +79,20 @@ export const useLocalAppCategories = (): AppCategoriesData & {
           updated_at: new Date().toISOString(),
         };
       });
+      // 重複排除: type+identifier(小文字) でユニーク化
+      const uniqueMap = new Map<string, AppCategory>();
+      for (const c of mapped) {
+        const key = `${c.type}::${(c.identifier || '').toLowerCase()}`;
+        // 既に存在する場合は、idがある方/より新しいupdated_atを優先
+        const prev = uniqueMap.get(key);
+        if (!prev) {
+          uniqueMap.set(key, c);
+        } else {
+          const pick = prev.id ? prev : c.id ? c : (new Date(c.updated_at) > new Date(prev.updated_at) ? c : prev);
+          uniqueMap.set(key, pick);
+        }
+      }
+      const appCategories: AppCategory[] = Array.from(uniqueMap.values());
       
       console.log('[useLocalAppCategories] Processed app categories:', appCategories);
 
@@ -223,6 +237,9 @@ export const useLocalAppCategories = (): AppCategoriesData & {
       );
 
       if (addedCategory) {
+        // 既存同一キーのものは置き換え
+        const keyToReplace = `${payload.type}::${payload.identifier.toLowerCase()}`;
+        const filtered = prev => prev.categories.filter(cat => `${cat.type}::${(cat.identifier || '').toLowerCase()}` !== keyToReplace);
         const newCategory: AppCategory = {
           id: String(addedCategory.id),
           name: payload.name || payload.identifier,
@@ -236,7 +253,7 @@ export const useLocalAppCategories = (): AppCategoriesData & {
 
         setData(prev => ({
           ...prev,
-          categories: [...prev.categories, newCategory],
+          categories: [...filtered(prev), newCategory],
           discovered: prev.discovered.filter(d => !(d.type === payload.type && d.identifier.toLowerCase() === payload.identifier.toLowerCase())),
         }));
 

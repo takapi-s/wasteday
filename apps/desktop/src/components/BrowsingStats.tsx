@@ -20,11 +20,11 @@ export function BrowsingStats({ className = '' }: BrowsingStatsProps) {
     return (
       <div className={`p-4 ${className}`}>
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
           <div className="space-y-2">
-            <div className="h-3 bg-gray-200 rounded"></div>
-            <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
           </div>
         </div>
       </div>
@@ -34,7 +34,7 @@ export function BrowsingStats({ className = '' }: BrowsingStatsProps) {
   if (dataError || statsError) {
     return (
       <div className={`p-4 ${className}`}>
-        <div className="text-red-600">
+        <div className="text-red-600 dark:text-red-400">
           <p>エラーが発生しました: {dataError || statsError}</p>
         </div>
       </div>
@@ -44,26 +44,26 @@ export function BrowsingStats({ className = '' }: BrowsingStatsProps) {
   if (!stats) {
     return (
       <div className={`p-4 ${className}`}>
-        <p className="text-gray-500">ブラウジングデータがありません</p>
+        <p className="text-gray-500 dark:text-gray-400">ブラウジングデータがありません</p>
       </div>
     );
   }
 
   return (
     <div className={`p-4 ${className}`}>
-      <h3 className="text-lg font-semibold mb-4">ブラウジング統計</h3>
+      <h3 className="text-lg font-semibold mb-4 dark:text-white">ブラウジング統計</h3>
       
       {/* 総計 */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <div className="text-sm text-blue-600 font-medium">総ブラウジング時間</div>
-          <div className="text-2xl font-bold text-blue-900">
+        <div className="p-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">総ブラウジング時間</div>
+          <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
             {formatDuration(stats.total_time)}
           </div>
         </div>
-        <div className="bg-green-50 p-4 rounded-lg">
-          <div className="text-sm text-green-600 font-medium">訪問ドメイン数</div>
-          <div className="text-2xl font-bold text-green-900">
+        <div className="p-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-green-600 dark:text-green-400 font-medium">訪問ドメイン数</div>
+          <div className="text-2xl font-bold text-green-900 dark:text-green-100">
             {stats.domain_count}
           </div>
         </div>
@@ -71,22 +71,22 @@ export function BrowsingStats({ className = '' }: BrowsingStatsProps) {
 
       {/* トップドメイン */}
       <div className="mb-6">
-        <h4 className="text-md font-semibold mb-3">よく訪問するドメイン</h4>
+        <h4 className="text-md font-semibold mb-3 dark:text-white">よく訪問するドメイン</h4>
         <div className="space-y-2">
           {stats.top_domains.slice(0, 5).map((domain, index) => (
-            <div key={domain.domain} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div key={domain.domain} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-transparent dark:border-gray-700">
               <div className="flex items-center space-x-3">
-                <span className="text-sm font-medium text-gray-500">#{index + 1}</span>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">#{index + 1}</span>
                 <div>
-                  <div className="font-medium">{domain.domain}</div>
-                  <div className="text-sm text-gray-500">
+                  <div className="font-medium dark:text-gray-100">{domain.domain}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
                     {domain.visit_count}回訪問
                   </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-semibold">{formatDuration(domain.total_time)}</div>
-                <div className="text-sm text-gray-500">
+                <div className="font-semibold dark:text-gray-100">{formatDuration(domain.total_time)}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   {((domain.total_time / stats.total_time) * 100).toFixed(1)}%
                 </div>
               </div>
@@ -97,24 +97,24 @@ export function BrowsingStats({ className = '' }: BrowsingStatsProps) {
 
       {/* カテゴリ別統計 */}
       <div>
-        <h4 className="text-md font-semibold mb-3">カテゴリ別統計</h4>
+        <h4 className="text-md font-semibold mb-3 dark:text-white">カテゴリ別統計</h4>
         <div className="space-y-2">
           {stats.category_breakdown.map((category, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-transparent dark:border-gray-700">
               <div className="flex items-center space-x-3">
                 <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                 <div>
-                  <div className="font-medium">
+                  <div className="font-medium dark:text-gray-100">
                     {category.category_name || `カテゴリ ${category.category_id || '未分類'}`}
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
                     {category.domain_count}ドメイン
                   </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-semibold">{formatDuration(category.total_time)}</div>
-                <div className="text-sm text-gray-500">
+                <div className="font-semibold dark:text-gray-100">{formatDuration(category.total_time)}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   {((category.total_time / stats.total_time) * 100).toFixed(1)}%
                 </div>
               </div>

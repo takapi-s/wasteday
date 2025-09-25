@@ -51,14 +51,24 @@ export function useBrowsingData() {
   const upsertDomain = useCallback(async (domain: Domain) => {
     try {
       await invoke('db_upsert_domain', { domain });
-      // ドメインリストを再取得
-      await fetchDomains();
+      // 最新のdomainsに基づいて過去のbrowsing_sessionsを再分類
+      try {
+        const affected = await invoke<number>('db_reclassify_browsing_sessions', { since: null, until: null });
+        console.log('[useBrowsingData] reclassified browsing_sessions:', affected);
+      } catch (reclassErr) {
+        console.error('Failed to reclassify browsing sessions:', reclassErr);
+      }
+      // 再分類後に一覧を再取得
+      await Promise.all([
+        fetchDomains(),
+        fetchBrowsingSessions(),
+      ]);
     } catch (err) {
       setError(err as string);
       console.error('Failed to upsert domain:', err);
       throw err;
     }
-  }, [fetchDomains]);
+  }, [fetchDomains, fetchBrowsingSessions]);
 
   const deleteBrowsingSession = useCallback(async (id: string) => {
     try {

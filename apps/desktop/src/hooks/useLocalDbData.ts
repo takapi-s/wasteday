@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { TimeSeriesPoint, TopItem } from '@wasteday/ui';
 import { useCategoryEventEmitter } from './useCategoryEventEmitter';
@@ -67,6 +67,37 @@ export const useLocalDbData = (options: DashboardQueryOptions = {}): DashboardDa
           invoke<WasteCategory[]>('db_list_waste_categories'),
         ]);
 
+        // 軽量フィンガープリントで同一データなら再計算をスキップ
+        // 特徴量: 件数 / 合計秒数 / 最小・最大start_time（秒） / binMinutes / rangeHours
+        const toEpochSec = (iso?: string) => (iso ? Math.floor(new Date(iso).getTime() / 1000) : 0);
+        let minStart = Number.POSITIVE_INFINITY;
+        let maxStart = 0;
+        let sumDur = 0;
+        for (const s of sessions) {
+          const st = toEpochSec(s.start_time);
+          if (st > 0) {
+            if (st < minStart) minStart = st;
+            if (st > maxStart) maxStart = st;
+          }
+          sumDur += s.duration_seconds || 0;
+        }
+        if (!Number.isFinite(minStart)) minStart = 0;
+        const fingerprint = `${sessions.length}|${sumDur}|${minStart}|${maxStart}|${binMinutes}|${rangeHours}`;
+
+        // useRef で前回のフィンガープリントを保持
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const fpRef = (useLocalDbData as any)._fpRef as React.MutableRefObject<string | undefined> | undefined;
+        if (!fpRef) {
+          (useLocalDbData as any)._fpRef = { current: undefined } as React.MutableRefObject<string | undefined>;
+        }
+        const ref: React.MutableRefObject<string | undefined> = (useLocalDbData as any)._fpRef;
+        if (ref.current === fingerprint) {
+          // 前回と同一データ → 再集計をスキップ
+          setData(prev => ({ ...prev, loading: false }));
+          return;
+        }
+        ref.current = fingerprint;
+
         const isWaste = (type?: string, identifier?: string): boolean => {
           if (!type || !identifier) return false;
           const t = (type || '').toLowerCase();
@@ -111,39 +142,61 @@ export const useLocalDbData = (options: DashboardQueryOptions = {}): DashboardDa
           }
         }
 
-        // 時系列（重なり配分でバケット化）
-        const last24hSeries: TimeSeriesPoint[] = [];
+        // 時系列（セッション主導でバケット化）
         const bins = Math.ceil((rangeHours * 60) / binMinutes);
         const now = new Date();
-        for (let i = bins - 1; i >= 0; i--) {
-          const binStart = new Date(now);
-          binStart.setMinutes(binStart.getMinutes() - i * binMinutes, 0, 0);
-          const binEnd = new Date(binStart);
-          binEnd.setMinutes(binStart.getMinutes() + binMinutes, 0, 0);
+        const windowStart = new Date(now);
+        windowStart.setHours(now.getHours() - rangeHours, now.getMinutes(), 0, 0);
 
-          let activeSeconds = 0;
-          let idleSeconds = 0;
-          for (const session of sessions) {
-            const duration = session.duration_seconds;
-            if (!duration || duration <= 0) continue;
-            const sessionStart = new Date(session.start_time);
-            const sessionEnd = new Date(sessionStart);
-            sessionEnd.setSeconds(sessionEnd.getSeconds() + duration, 0);
-            const overlapStart = sessionStart > binStart ? sessionStart : binStart;
-            const overlapEnd = sessionEnd < binEnd ? sessionEnd : binEnd;
-            const overlapMs = overlapEnd.getTime() - overlapStart.getTime();
-            if (overlapMs <= 0) continue;
-            const overlapSeconds = Math.floor(overlapMs / 1000);
-            const meta = parseSessionKey(session.session_key);
-            if (isWaste(meta.category, meta.identifier)) {
-              activeSeconds += overlapSeconds;
-            } else {
-              idleSeconds += overlapSeconds;
-            }
-          }
-
-          last24hSeries.push({ timestamp: binStart.toISOString(), activeSeconds, idleSeconds });
+        // 各ビンの開始時刻と累積配列を準備
+        const binStarts: Date[] = new Array(bins);
+        const activePerBin: number[] = new Array(bins).fill(0);
+        const idlePerBin: number[] = new Array(bins).fill(0);
+        for (let i = 0; i < bins; i++) {
+          const d = new Date(windowStart);
+          d.setMinutes(d.getMinutes() + i * binMinutes, 0, 0);
+          binStarts[i] = d;
         }
+
+        // セッションごとに関与するビン範囲にのみ加算
+        const secPerBin = binMinutes * 60;
+        for (const session of sessions) {
+          const duration = session.duration_seconds;
+          if (!duration || duration <= 0) continue;
+          const sessionStart = new Date(session.start_time);
+          const sessionEnd = new Date(sessionStart);
+          sessionEnd.setSeconds(sessionEnd.getSeconds() + duration, 0);
+
+          // 表示窓外はスキップ
+          if (sessionEnd <= windowStart || sessionStart >= now) continue;
+
+          // クランプした区間
+          const clampedStart = sessionStart < windowStart ? windowStart : sessionStart;
+          const clampedEnd = sessionEnd > now ? now : sessionEnd;
+
+          // 範囲に対応するビンindexを計算
+          const startIdx = Math.max(0, Math.floor((clampedStart.getTime() - windowStart.getTime()) / 1000 / secPerBin));
+          const endIdx = Math.min(bins - 1, Math.floor(((clampedEnd.getTime() - windowStart.getTime()) / 1000 - 1) / secPerBin));
+
+          const meta = parseSessionKey(session.session_key);
+          const isWasteSession = isWaste(meta.category, meta.identifier);
+
+          for (let bi = startIdx; bi <= endIdx; bi++) {
+            const binStart = binStarts[bi].getTime();
+            const binEnd = binStart + secPerBin * 1000;
+            const ovStart = Math.max(clampedStart.getTime(), binStart);
+            const ovEnd = Math.min(clampedEnd.getTime(), binEnd);
+            const ovSec = Math.max(0, Math.floor((ovEnd - ovStart) / 1000));
+            if (ovSec <= 0) continue;
+            if (isWasteSession) activePerBin[bi] += ovSec; else idlePerBin[bi] += ovSec;
+          }
+        }
+
+        const last24hSeries: TimeSeriesPoint[] = binStarts.map((bs, i) => ({
+          timestamp: bs.toISOString(),
+          activeSeconds: activePerBin[i],
+          idleSeconds: idlePerBin[i],
+        }));
 
         const topWaste: TopItem[] = Array.from(wasteSecondsById.entries())
           .sort((a, b) => b[1] - a[1])

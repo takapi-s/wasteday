@@ -40,13 +40,20 @@ export type WeeklyCalendarData = {
   }>;
 };
 
-export const useWeeklyCalendarData = (offsetWeeks: number = 0) => {
+export const useWeeklyCalendarData = (offsetWeeks: number | undefined = 0) => {
   const [weeklyData, setWeeklyData] = useState<WeeklyCalendarData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(offsetWeeks !== undefined);
   const [error, setError] = useState<string | null>(null);
   const { subscribe } = useCategoryEventEmitter();
 
   useEffect(() => {
+    // offsetWeeksがundefinedの場合はデータを取得しない
+    if (offsetWeeks === undefined) {
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     const fetchWeeklyCalendarData = async () => {
       try {
         setLoading(true);
