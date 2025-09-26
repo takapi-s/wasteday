@@ -187,10 +187,12 @@ export class DataProcessor {
 
     return filteredStats
       .map(([identifier, data]) => ({
+        identifier: identifier,
+        totalTime: data.totalTime,
         label: identifier,
         seconds: data.totalTime,
       }))
-      .sort((a, b) => b.seconds - a.seconds)
+      .sort((a, b) => b.totalTime - a.totalTime)
       .slice(0, 10);
   }
 
