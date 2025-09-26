@@ -1,6 +1,6 @@
 {
   "name": "@wasteday/localdb",
-  "version": "0.1.0",
+  "version": "1.0.2",
   "private": true,
   "description": "SQLite local database schema, types and repository interfaces for Wasteday desktop",
   "license": "MIT",
