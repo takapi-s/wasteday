@@ -35,7 +35,8 @@ export const DashboardRankings: React.FC<DashboardRankingsProps> = ({
                 <li className="text-sm text-gray-500 dark:text-gray-400">No data</li>
               )}
               {(topProductive || []).slice(0,7).map((it, i) => {
-                const duration = formatDuration(it.seconds);
+                const seconds = it.seconds ?? it.totalTime ?? 0;
+                const duration = formatDuration(seconds);
                 return (
                   <li key={`p-${i}`} className="flex items-center justify-between text-sm">
                     <span className="text-gray-700 dark:text-gray-300">{it.label}</span>
@@ -54,7 +55,8 @@ export const DashboardRankings: React.FC<DashboardRankingsProps> = ({
                 <li className="text-sm text-gray-500 dark:text-gray-400">No data</li>
               )}
               {(topWaste || []).slice(0,7).map((it, i) => {
-                const duration = formatDuration(it.seconds);
+                const seconds = it.seconds ?? it.totalTime ?? 0;
+                const duration = formatDuration(seconds);
                 return (
                   <li key={`w-${i}`} className="flex items-center justify-between text-sm">
                     <span className="text-gray-700 dark:text-gray-300">{it.label}</span>
@@ -73,7 +75,8 @@ export const DashboardRankings: React.FC<DashboardRankingsProps> = ({
             <li className="text-sm text-gray-500 dark:text-gray-400">No data</li>
           )}
           {topIdentifiers.map((it, i) => {
-            const duration = formatDuration(it.seconds);
+            const seconds = it.seconds ?? it.totalTime ?? 0;
+            const duration = formatDuration(seconds);
             return (
               <li key={i} className="flex items-center justify-between text-sm">
                 <span className="text-gray-700 dark:text-gray-300">{it.label}</span>
