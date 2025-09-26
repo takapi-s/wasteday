@@ -78,7 +78,7 @@ export const TopItemsList: React.FC<TopItemsListProps> = ({
               </div>
               <div className="ml-4">
                 <p className={`text-sm font-semibold ${getTypeColor(type)}`}>
-                  {formatTime(item.seconds)}
+                  {formatTime(item.seconds ?? item.totalTime ?? 0)}
                 </p>
               </div>
             </div>
