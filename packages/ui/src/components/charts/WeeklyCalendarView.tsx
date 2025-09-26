@@ -16,10 +16,10 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ data, onHourCli
   const getHourColor = (wasteSeconds: number, productiveSeconds: number, mode: 'waste' | 'productive' | 'both') => {
     if (mode === 'waste') {
       if (wasteSeconds === 0) return 'bg-gray-50 dark:bg-gray-800';
-      if (wasteSeconds < 900) return 'bg-red-100 dark:bg-red-900/30'; // 15分未満
-      if (wasteSeconds < 1800) return 'bg-red-200 dark:bg-red-800/50'; // 30分未満
-      if (wasteSeconds < 3600) return 'bg-red-300 dark:bg-red-700/70'; // 1時間未満
-      return 'bg-red-400 dark:bg-red-600/80'; // 1時間以上
+      if (wasteSeconds < 900) return 'bg-red-100 dark:bg-red-900/30'; // Less than 15 minutes
+      if (wasteSeconds < 1800) return 'bg-red-200 dark:bg-red-800/50'; // Less than 30 minutes
+      if (wasteSeconds < 3600) return 'bg-red-300 dark:bg-red-700/70'; // Less than 1 hour
+      return 'bg-red-400 dark:bg-red-600/80'; // 1 hour or more
     } else if (mode === 'productive') {
       if (productiveSeconds === 0) return 'bg-gray-50 dark:bg-gray-800';
       if (productiveSeconds < 900) return 'bg-green-100 dark:bg-green-900/30';

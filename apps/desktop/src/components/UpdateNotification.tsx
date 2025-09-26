@@ -1,4 +1,4 @@
-import { useUpdater } from '../hooks/useUpdater';
+import { useUpdater } from '../hooks/utils';
 
 export function UpdateNotification() {
   const { updateInfo, isInstalling, installUpdate } = useUpdater();

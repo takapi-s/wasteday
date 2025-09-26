@@ -1,6 +1,12 @@
 // Common types for Dashboard components
 export type TimeSeriesPoint = { timestamp: string; activeSeconds: number; idleSeconds: number };
-export type TopItem = { label: string; seconds: number };
+export type TopItem = { 
+  identifier: string; 
+  totalTime: number; 
+  count?: number;
+  label?: string; // 後方互換性のため
+  seconds?: number; // 後方互換性のため
+};
 
 export type DailyData = {
   date: string;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { SamplingService, type SamplingEvent, getSamplingService } from '../services/SamplingService';
+import { SamplingService, type SamplingEvent, getSamplingService } from '../../services/SamplingService';
 
 type SampleData = {
   timestamp: string;

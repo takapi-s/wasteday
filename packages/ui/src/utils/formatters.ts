@@ -26,6 +26,23 @@ export const formatPercentage = (value: number): string => {
 };
 
 /**
+ * Compact percent with sign and K/M/B suffix, up to 1 decimal (drop trailing .0)
+ */
+export const formatPercentSignedCompact = (value: number): string => {
+  const sign = value >= 0 ? '+' : '';
+  const abs = Math.abs(value);
+  if (abs < 1000) {
+    const v = Math.round(abs * 10) / 10;
+    const str = v.toFixed(1).replace(/\.0$/, '');
+    return `${sign}${str}%`;
+  }
+  const toOne = (n: number) => (Math.round(n * 10) / 10).toFixed(1).replace(/\.0$/, '');
+  if (abs < 1_000_000) return `${sign}${toOne(abs / 1_000)}k%`;
+  if (abs < 1_000_000_000) return `${sign}${toOne(abs / 1_000_000)}M%`;
+  return `${sign}${toOne(abs / 1_000_000_000)}B%`;
+};
+
+/**
  * Format date for display
  * @param date - Date string or Date object
  * @returns Formatted date string

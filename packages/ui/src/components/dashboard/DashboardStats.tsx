@@ -1,6 +1,6 @@
 import React from 'react';
 import type { WeeklyData, MonthlyData } from '../../types';
-import { formatDuration } from '../../utils';
+import { formatDuration, formatPercentSignedCompact } from '../../utils';
 
 interface DashboardStatsProps {
   selectedPeriod: 'today' | 'week' | 'month';
@@ -78,14 +78,14 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="text-sm text-gray-600 dark:text-gray-400">WoW Change</div>
           <div className={`mt-1 text-2xl font-semibold ${weeklyData.previousWeekComparison >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-            {weeklyData.previousWeekComparison >= 0 ? '+' : ''}{weeklyData.previousWeekComparison}%
+            {formatPercentSignedCompact(weeklyData.previousWeekComparison)}
           </div>
           <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{weeklyData.previousWeekComparison >= 0 ? 'Worse' : 'Better'}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="text-sm text-gray-600 dark:text-gray-400">WoW Change (Productive)</div>
           <div className={`mt-1 text-2xl font-semibold ${(weeklyData.previousWeekComparisonProductive ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {(weeklyData.previousWeekComparisonProductive ?? 0) >= 0 ? '+' : ''}{weeklyData.previousWeekComparisonProductive ?? 0}%
+            {formatPercentSignedCompact(weeklyData.previousWeekComparisonProductive ?? 0)}
           </div>
           <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{(weeklyData.previousWeekComparisonProductive ?? 0) >= 0 ? 'Better' : 'Worse'}</div>
         </div>
@@ -114,14 +114,14 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="text-sm text-gray-600 dark:text-gray-400">MoM Change</div>
           <div className={`mt-1 text-2xl font-semibold ${monthlyData.previousMonthComparison >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-            {monthlyData.previousMonthComparison >= 0 ? '+' : ''}{monthlyData.previousMonthComparison}%
+            {formatPercentSignedCompact(monthlyData.previousMonthComparison)}
           </div>
           <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">{monthlyData.previousMonthComparison >= 0 ? 'Worse' : 'Better'}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="text-sm text-gray-600 dark:text-gray-400">MoM Change (Productive)</div>
           <div className={`mt-1 text-2xl font-semibold ${(monthlyData.previousMonthComparisonProductive ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {(monthlyData.previousMonthComparisonProductive ?? 0) >= 0 ? '+' : ''}{monthlyData.previousMonthComparisonProductive ?? 0}%
+            {formatPercentSignedCompact(monthlyData.previousMonthComparisonProductive ?? 0)}
           </div>
           <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">{(monthlyData.previousMonthComparisonProductive ?? 0) >= 0 ? 'Better' : 'Worse'}</div>
         </div>

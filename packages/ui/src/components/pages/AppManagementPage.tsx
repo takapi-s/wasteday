@@ -33,25 +33,26 @@ export interface AppManagementPageProps {
   }>;
 }
 
-export const AppManagementPage: React.FC<AppManagementPageProps> = ({
-  categories,
-  loading,
-  error,
-  onUpdateCategory,
-  onToggleActive,
-  discovered = [],
-  onAddCategory,
-  onDeleteCategory,
-  browsingSessions = [],
-}) => {
+export const AppManagementPage: React.FC<AppManagementPageProps> = (props) => {
+  const {
+    categories,
+    loading,
+    error,
+    onUpdateCategory,
+    onToggleActive,
+    discovered = [],
+    onAddCategory,
+    onDeleteCategory,
+    browsingSessions = [],
+  } = props;
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'app' | 'domain'>('all');
   const [filterLabel, setFilterLabel] = useState<'all' | 'waste' | 'neutral' | 'study'>('all');
   const [activeTab, setActiveTab] = useState<'window' | 'browser'>('window');
 
-  // Browserタブ用のドメインデータを生成（既存カテゴリに含まれていないもののみ）
+  // Generate domain data for Browser tab (only domains not in existing categories)
   const browserDomains = useMemo(() => {
-    // 既存のドメインカテゴリのidentifierを取得
+    // Get identifiers of existing domain categories
     const existingDomains = new Set(
       categories
         .filter(cat => cat.type === 'domain')
@@ -63,7 +64,7 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
       const dur = Math.max(0, session.duration_seconds || 0);
       if (!session.domain) continue;
       
-      // 既存カテゴリに含まれていないドメインのみを対象
+      // Only include domains not in existing categories
       if (!existingDomains.has(session.domain.toLowerCase())) {
         domainMap.set(session.domain, (domainMap.get(session.domain) || 0) + dur);
       }
@@ -331,8 +332,8 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = ({
                               identifier: item.domain, 
                               label: 'neutral' 
                             });
-                            // カテゴリ追加後、このドメインは既存カテゴリに含まれるため
-                            // browserDomainsから自動的に除外される
+                            // After adding category, this domain will be included in existing categories
+                            // Will be automatically excluded from browserDomains
                           } catch (error) {
                             console.error('Failed to add category:', error);
                           }

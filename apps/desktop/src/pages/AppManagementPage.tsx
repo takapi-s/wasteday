@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppManagementPage as SharedAppManagement } from '@wasteday/ui';
-import { useLocalAppCategories } from '../hooks/useLocalAppCategories';
-import { useBrowsingData } from '../hooks/useBrowsingData';
+import { useLocalAppCategories } from '../hooks/utils';
+import { useBrowsingData } from '../hooks/data';
 
 export const AppManagementPage: React.FC = () => {
   const { 

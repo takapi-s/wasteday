@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { useBrowsingData } from '../hooks/useBrowsingData';
+import { useBrowsingData } from '../hooks/data';
 import { formatDurationShort } from '../utils/time';
 
 type BarItem = {

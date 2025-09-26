@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { invoke } from "@tauri-apps/api/core";
 import { isEnabled, enable, disable } from "@tauri-apps/plugin-autostart";
-import { useIngestUI } from '../hooks/useIngestUI';
+import { useIngestUI } from '../hooks/ui';
 import { getSamplingService } from '../services/SamplingService';
 
 type ForegroundInfo = {

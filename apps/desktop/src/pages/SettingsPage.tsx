@@ -1,6 +1,6 @@
 import React from 'react';
 import { useIngest } from '../context/IngestContext';
-import { useDarkMode } from '../hooks/useDarkMode';
+import { useDarkMode } from '../hooks/ui';
 import { SettingsPage as SharedSettingsPage } from '@wasteday/ui';
 
 export const SettingsPage: React.FC = () => {

@@ -1,5 +1,6 @@
+import { formatCompactNumber } from '../utils/numberFormat';
 import { useEffect } from 'react';
-import { useBrowsingData, useBrowsingStats } from '../hooks/useBrowsingData';
+import { useBrowsingData, useBrowsingStats } from '../hooks/data';
 import { formatDuration } from '../utils/time';
 
 interface BrowsingStatsProps {
@@ -64,7 +65,7 @@ export function BrowsingStats({ className = '' }: BrowsingStatsProps) {
         <div className="p-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-green-600 dark:text-green-400 font-medium">訪問ドメイン数</div>
           <div className="text-2xl font-bold text-green-900 dark:text-green-100">
-            {stats.domain_count}
+            {formatCompactNumber(stats.domain_count)}
           </div>
         </div>
       </div>
@@ -73,7 +74,7 @@ export function BrowsingStats({ className = '' }: BrowsingStatsProps) {
       <div className="mb-6">
         <h4 className="text-md font-semibold mb-3 dark:text-white">よく訪問するドメイン</h4>
         <div className="space-y-2">
-          {stats.top_domains.slice(0, 5).map((domain, index) => (
+          {stats.top_domains.slice(0, 5).map((domain: { domain: string; total_time: number; visit_count: number; category_id?: number }, index: number) => (
             <div key={domain.domain} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-transparent dark:border-gray-700">
               <div className="flex items-center space-x-3">
                 <span className="text-sm font-medium text-gray-500 dark:text-gray-400">#{index + 1}</span>
@@ -99,7 +100,7 @@ export function BrowsingStats({ className = '' }: BrowsingStatsProps) {
       <div>
         <h4 className="text-md font-semibold mb-3 dark:text-white">カテゴリ別統計</h4>
         <div className="space-y-2">
-          {stats.category_breakdown.map((category, index) => (
+          {stats.category_breakdown.map((category: { category_id?: number; category_name?: string; total_time: number; domain_count: number }, index: number) => (
             <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-transparent dark:border-gray-700">
               <div className="flex items-center space-x-3">
                 <div className="w-3 h-3 bg-blue-500 rounded-full"></div>

@@ -239,7 +239,7 @@ export const useLocalAppCategories = (): AppCategoriesData & {
       if (addedCategory) {
         // 既存同一キーのものは置き換え
         const keyToReplace = `${payload.type}::${payload.identifier.toLowerCase()}`;
-        const filtered = prev => prev.categories.filter(cat => `${cat.type}::${(cat.identifier || '').toLowerCase()}` !== keyToReplace);
+        const filtered = (prev: any) => prev.categories.filter((cat: any) => `${cat.type}::${(cat.identifier || '').toLowerCase()}` !== keyToReplace);
         const newCategory: AppCategory = {
           id: String(addedCategory.id),
           name: payload.name || payload.identifier,

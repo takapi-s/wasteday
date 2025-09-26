@@ -1,18 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import type { BrowsingSession, Domain, BrowsingSessionsQuery, BrowsingStats } from '../types/browsing';
 
-export function useBrowsingData() {
-  const [sessions, setSessions] = useState<BrowsingSession[]>([]);
-  const [domains, setDomains] = useState<Domain[]>([]);
+export const useBrowsingData = () => {
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [domains, setDomains] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchBrowsingSessions = useCallback(async (query: BrowsingSessionsQuery = {}) => {
+  const fetchBrowsingSessions = useCallback(async (query: any = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const result = await invoke<BrowsingSession[]>('db_get_browsing_sessions', { query });
+      const result = await invoke<any[]>('db_get_browsing_sessions', { query });
       setSessions(result);
     } catch (err) {
       setError(err as string);
@@ -26,7 +25,7 @@ export function useBrowsingData() {
     try {
       setLoading(true);
       setError(null);
-      const result = await invoke<Domain[]>('db_get_domains');
+      const result = await invoke<any[]>('db_get_domains');
       setDomains(result);
     } catch (err) {
       setError(err as string);
@@ -36,10 +35,9 @@ export function useBrowsingData() {
     }
   }, []);
 
-  const upsertBrowsingSession = useCallback(async (session: BrowsingSession) => {
+  const upsertBrowsingSession = useCallback(async (session: any) => {
     try {
       await invoke('db_upsert_browsing_session', { session });
-      // セッションリストを再取得
       await fetchBrowsingSessions();
     } catch (err) {
       setError(err as string);
@@ -48,21 +46,16 @@ export function useBrowsingData() {
     }
   }, [fetchBrowsingSessions]);
 
-  const upsertDomain = useCallback(async (domain: Domain) => {
+  const upsertDomain = useCallback(async (domain: any) => {
     try {
       await invoke('db_upsert_domain', { domain });
-      // 最新のdomainsに基づいて過去のbrowsing_sessionsを再分類
       try {
         const affected = await invoke<number>('db_reclassify_browsing_sessions', { since: null, until: null });
         console.log('[useBrowsingData] reclassified browsing_sessions:', affected);
       } catch (reclassErr) {
         console.error('Failed to reclassify browsing sessions:', reclassErr);
       }
-      // 再分類後に一覧を再取得
-      await Promise.all([
-        fetchDomains(),
-        fetchBrowsingSessions(),
-      ]);
+      await Promise.all([fetchDomains(), fetchBrowsingSessions()]);
     } catch (err) {
       setError(err as string);
       console.error('Failed to upsert domain:', err);
@@ -73,7 +66,6 @@ export function useBrowsingData() {
   const deleteBrowsingSession = useCallback(async (id: string) => {
     try {
       await invoke('db_delete_browsing_session', { id });
-      // セッションリストを再取得
       await fetchBrowsingSessions();
     } catch (err) {
       setError(err as string);
@@ -93,17 +85,14 @@ export function useBrowsingData() {
     }
   }, []);
 
-  // 初期データの読み込み
   useEffect(() => {
     fetchBrowsingSessions();
     fetchDomains();
-    // 30秒ごとにポーリング
     const interval = setInterval(() => {
       fetchBrowsingSessions();
       fetchDomains();
     }, 30000);
 
-    // ウィンドウ復帰時にリフレッシュ
     const onFocus = () => {
       fetchBrowsingSessions();
       fetchDomains();
@@ -132,24 +121,21 @@ export function useBrowsingData() {
     deleteBrowsingSession,
     classifyDomain,
   };
-}
+};
 
-export function useBrowsingStats(_query: BrowsingSessionsQuery = {}) {
-  const [stats, setStats] = useState<BrowsingStats | null>(null);
+export const useBrowsingStats = (_query: any = {}) => {
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const calculateStats = useCallback(async (sessions: BrowsingSession[], domains: Domain[]) => {
+  const calculateStats = useCallback(async (sessions: any[], domains: any[]) => {
     try {
       setLoading(true);
       setError(null);
 
-      // 総時間の計算
       const totalTime = sessions.reduce((sum, session) => sum + session.duration_seconds, 0);
 
-      // ドメイン別の統計
       const domainStats = new Map<string, { totalTime: number; visitCount: number; categoryId?: number }>();
-      
       sessions.forEach(session => {
         const existing = domainStats.get(session.domain) || { totalTime: 0, visitCount: 0, categoryId: session.category_id };
         existing.totalTime += session.duration_seconds;
@@ -158,7 +144,6 @@ export function useBrowsingStats(_query: BrowsingSessionsQuery = {}) {
         domainStats.set(session.domain, existing);
       });
 
-      // トップドメイン（時間順）
       const topDomains = Array.from(domainStats.entries())
         .map(([domain, stats]) => ({
           domain,
@@ -169,9 +154,7 @@ export function useBrowsingStats(_query: BrowsingSessionsQuery = {}) {
         .sort((a, b) => b.total_time - a.total_time)
         .slice(0, 10);
 
-      // カテゴリ別の統計
       const categoryStats = new Map<number | undefined, { totalTime: number; domainCount: number }>();
-      
       sessions.forEach(session => {
         const categoryId = session.category_id;
         const existing = categoryStats.get(categoryId) || { totalTime: 0, domainCount: 0 };
@@ -179,7 +162,6 @@ export function useBrowsingStats(_query: BrowsingSessionsQuery = {}) {
         categoryStats.set(categoryId, existing);
       });
 
-      // ドメイン数をカテゴリ別に計算
       domains.forEach(domain => {
         if (domain.category_id !== undefined) {
           const existing = categoryStats.get(domain.category_id);
@@ -192,13 +174,13 @@ export function useBrowsingStats(_query: BrowsingSessionsQuery = {}) {
       const categoryBreakdown = Array.from(categoryStats.entries())
         .map(([categoryId, stats]) => ({
           category_id: categoryId,
-          category_name: undefined, // 実際の実装では、waste_categoriesテーブルから取得
+          category_name: undefined,
           total_time: stats.totalTime,
           domain_count: stats.domainCount,
         }))
         .sort((a, b) => b.total_time - a.total_time);
 
-      const result: BrowsingStats = {
+      const result = {
         total_time: totalTime,
         domain_count: domainStats.size,
         top_domains: topDomains,
@@ -220,4 +202,6 @@ export function useBrowsingStats(_query: BrowsingSessionsQuery = {}) {
     error,
     calculateStats,
   };
-}
+};
+
+

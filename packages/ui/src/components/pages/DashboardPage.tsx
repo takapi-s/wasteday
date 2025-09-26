@@ -91,9 +91,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const weekOffset = currentWeekOffset ?? internalWeekOffset; // controlled or uncontrolled
   const monthOffset = currentMonthOffset ?? internalMonthOffset;
 
-  // Debug: 受け取ったデータをコンソールに出力
+  // Debug: Output received data to console
   React.useEffect(() => {
-    // 直近の3本だけプレビュー
+    // Preview only the latest 3 items
     const preview = last24hSeries.slice(-3);
     console.log('[UI][Dashboard] props:', {
       sessionsCount,

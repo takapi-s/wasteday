@@ -83,7 +83,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                   const hour = d.getHours().toString().padStart(2, '0');
                   const minute = d.getMinutes().toString().padStart(2, '0');
                   const isLast = idx === arr.length - 1;
-                  // 3時間ごとにだけラベルを表示
+                  // Show labels every 3 hours
                   const minutesFromStart = idx * binMinutes;
                   const showLabel = minutesFromStart % 180 === 0 || isLast;
                   const timeLabel = binMinutes < 60 ? `${hour}:${minute}` : hour;
@@ -125,7 +125,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                         const prodXs  = bins.map(b => centerX - widthHalf * clamp((b.idleSeconds   / binSeconds), 0, 1));
                         const ys      = bins.map((_, i) => toY(i));
 
-                        // パス生成（滑らかさ簡易: 直線→二次ベジェ）
+                        // Path generation (simple smoothness: straight line → quadratic Bézier)
                         const buildPath = (xs: number[], ys: number[]) => {
                           if (xs.length === 0) return '';
                           let d = `M ${xs[0]} ${ys[0]}`;

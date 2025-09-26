@@ -72,7 +72,7 @@ export const DataPage: React.FC<DataPageProps> = ({
               {liveSession}
             </div>
             <div className="text-xs text-gray-600 dark:text-gray-400">
-              insert条件: キー変更 or ギャップ &gt; 20秒 or 終了時
+              Insert condition: Key change or gap &gt; 20 seconds or on exit
             </div>
             <div className="text-xs text-blue-600 dark:text-blue-400">
               {etaText}
