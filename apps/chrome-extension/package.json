@@ -1,6 +1,6 @@
 {
   "name": "wasteday-chrome-extension",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Chrome extension for WasteDay desktop application",
   "scripts": {
     "build": "echo 'Chrome extension build completed'",
