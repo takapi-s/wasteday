@@ -9,7 +9,7 @@
  */
 export function formatDuration(seconds: number): string {
   if (seconds < 0) {
-    return '0秒';
+    return '0s';
   }
 
   const hours = Math.floor(seconds / 3600);
@@ -19,15 +19,15 @@ export function formatDuration(seconds: number): string {
   const parts: string[] = [];
 
   if (hours > 0) {
-    parts.push(`${hours}時間`);
+    parts.push(`${hours}h`);
   }
 
   if (minutes > 0) {
-    parts.push(`${minutes}分`);
+    parts.push(`${minutes}m`);
   }
 
   if (remainingSeconds > 0 || parts.length === 0) {
-    parts.push(`${remainingSeconds}秒`);
+    parts.push(`${remainingSeconds}s`);
   }
 
   return parts.join(' ');
@@ -96,15 +96,15 @@ export function formatDateTime(isoString: string): string {
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffMinutes < 1) {
-      return 'たった今';
+      return 'just now';
     } else if (diffMinutes < 60) {
-      return `${diffMinutes}分前`;
+      return `${diffMinutes} minutes ago`;
     } else if (diffHours < 24) {
-      return `${diffHours}時間前`;
+      return `${diffHours} hours ago`;
     } else if (diffDays < 7) {
-      return `${diffDays}日前`;
+      return `${diffDays} days ago`;
     } else {
-      return date.toLocaleDateString('ja-JP', {
+      return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -114,7 +114,7 @@ export function formatDateTime(isoString: string): string {
     }
   } catch (error) {
     console.error('Error formatting date time:', error);
-    return '不明な日時';
+    return 'Unknown date';
   }
 }
 
@@ -126,14 +126,14 @@ export function formatDateTime(isoString: string): string {
 export function formatDate(isoString: string): string {
   try {
     const date = new Date(isoString);
-    return date.toLocaleDateString('ja-JP', {
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
   } catch (error) {
     console.error('Error formatting date:', error);
-    return '不明な日付';
+    return 'Unknown date';
   }
 }
 
@@ -145,12 +145,12 @@ export function formatDate(isoString: string): string {
 export function formatTime(isoString: string): string {
   try {
     const date = new Date(isoString);
-    return date.toLocaleTimeString('ja-JP', {
+    return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
     });
   } catch (error) {
     console.error('Error formatting time:', error);
-    return '不明な時間';
+    return 'Unknown time';
   }
 }

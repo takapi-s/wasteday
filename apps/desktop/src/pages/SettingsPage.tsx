@@ -1,20 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useIngest } from '../context/IngestContext';
-import { useDarkMode } from '../hooks/ui';
+// Dark-only: theme hook no longer needed here
 import { SettingsPage as SharedSettingsPage } from '@wasteday/ui';
 
 export const SettingsPage: React.FC = () => {
-  const { autostartEnabled, toggleAutostart, updateGapThreshold } = useIngest();
-  const { theme, setLightMode, setDarkMode, setSystemMode } = useDarkMode();
-  const [appVersion, setAppVersion] = useState<string | undefined>(undefined);
+  const { updateGapThreshold } = useIngest();
+  // App version display removed from Settings
 
   useEffect(() => {
     let mounted = true;
-    import('@tauri-apps/api/app').then(({ getVersion }) => {
-      getVersion()
-        .then((v) => { if (mounted) setAppVersion(v); })
-        .catch(() => {});
-    }).catch(() => {});
+    // Dark-only & simplified settings: appVersion not displayed, skip fetching
     return () => { mounted = false; };
   }, []);
 
@@ -29,29 +24,12 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
-    switch (newTheme) {
-      case 'light':
-        setLightMode();
-        break;
-      case 'dark':
-        setDarkMode();
-        break;
-      case 'system':
-        setSystemMode();
-        break;
-    }
-  };
+  
 
   return (
     <SharedSettingsPage
-      autostartEnabled={autostartEnabled}
-      onToggleAutostart={toggleAutostart}
       onSaveSettings={handleSaveSettings}
-      theme={theme}
-      onThemeChange={handleThemeChange}
       showDatabaseStatus={false}
-      appVersion={appVersion}
     />
   );
 };

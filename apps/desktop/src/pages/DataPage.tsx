@@ -32,10 +32,10 @@ export const DataPage: React.FC = () => {
         parseSessionKey={parseSessionKey}
       />
       
-      {/* ブラウジングデータセクション */}
-      <div className="mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-          Chrome拡張機能からのブラウジングデータ
+      {/* Browsing data from Chrome Extension */}
+      <div className="mt-8 p-6 bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg shadow-sm border border-gray-200/50 dark:border-white/10">
+        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-neutral-100">
+          Browsing data from Chrome Extension
         </h2>
         <BrowsingStats />
       </div>

@@ -62,7 +62,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
     <div className="space-y-6">
       {/* Today Activity Chart */}
       {selectedPeriod === 'today' && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 h-96">
+        <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-white/10 p-4 h-96">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Activity Chart</h3>
             <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
@@ -76,7 +76,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
           <div className="relative">
             <div className="grid grid-cols-[auto_1fr] gap-2">
               {/* 左: 時刻ラベル */}
-              <div className="h-64 grid text-[10px] leading-3 text-gray-500 dark:text-gray-400 select-none bg-white dark:bg-gray-800" 
+              <div className="h-64 grid text-[10px] leading-3 text-gray-500 dark:text-gray-400 select-none bg-white/60 dark:bg-neutral-900/40 backdrop-blur-sm" 
                    style={{ gridTemplateRows: `repeat(${last24hSeries.length}, 1fr)` }}>
                 {last24hSeries.map((p, idx, arr) => {
                   const d = new Date(p.timestamp);
@@ -95,7 +95,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                 })}
               </div>
               {/* 右: SVG波 */}
-              <div className="relative h-64 bg-white dark:bg-gray-800">
+              <div className="relative h-64 bg-white/60 dark:bg-neutral-900/40 backdrop-blur-sm">
                 {(() => {
                   const visibleCount = last24hSeries.length;
                   const svgHeight = Math.max(256, visibleCount * 20); // 最小20px/点
@@ -103,14 +103,14 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                   const widthHalf = 280;
                   
                   return (
-                    <svg viewBox={`0 0 600 ${svgHeight}`} preserveAspectRatio="none" className="w-full h-full bg-white dark:bg-gray-800">
+                    <svg viewBox={`0 0 600 ${svgHeight}`} preserveAspectRatio="none" className="w-full h-full bg-transparent">
                       {/* 背景ラインと中央軸 */}
-                      <line x1="300" y1="0" x2="300" y2={svgHeight} className="stroke-gray-300 dark:stroke-gray-700" strokeWidth="1" />
+                      <line x1="300" y1="0" x2="300" y2={svgHeight} className="stroke-gray-300/60 dark:stroke-white/10" strokeWidth="1" />
                       {(() => {
                         if (visibleCount <= 1) return null;
                         const step = svgHeight / (visibleCount - 1);
                         return Array.from({ length: visibleCount }).map((_, i) => (
-                          <line key={`row-${i}`} x1="0" x2="600" y1={i * step} y2={i * step} className="stroke-gray-200 dark:stroke-gray-700" strokeWidth="0.5" />
+                          <line key={`row-${i}`} x1="0" x2="600" y1={i * step} y2={i * step} className="stroke-gray-200/60 dark:stroke-white/5" strokeWidth="0.5" />
                         ));
                       })()}
 
@@ -177,7 +177,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
 
       {/* Weekly Daily Chart */}
       {selectedPeriod === 'week' && weeklyData && weekViewMode === 'chart' && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-white/10 p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
               {weekOffset === 0 ? 'Daily Trend (This Week)' : 
@@ -195,7 +195,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
               </div>
             </div>
           </div>
-          <div className="relative h-56 bg-white dark:bg-gray-800">
+          <div className="relative h-56 bg-white/60 dark:bg-neutral-900/40 backdrop-blur-sm rounded-md">
             <WeeklyDailyChart weeklyData={weeklyData} />
           </div>
         </div>
@@ -203,7 +203,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
 
       {/* Weekly Calendar View */}
       {selectedPeriod === 'week' && weeklyCalendarData && weekViewMode === 'calendar' && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-white/10 p-4">
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
               {weekOffset === 0 ? 'Weekly Calendar (This Week)' : 
@@ -225,7 +225,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
 
       {/* Monthly Calendar View */}
       {selectedPeriod === 'month' && monthlyData && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-white/10 p-4">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
             {(() => {
               const targetDate = new Date();
@@ -233,7 +233,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
               return `${targetDate.getFullYear()} / ${targetDate.getMonth() + 1}`;
             })()}
           </h3>
-          <div className="grid grid-cols-7 gap-1 bg-white dark:bg-gray-800">
+          <div className="grid grid-cols-7 gap-1 bg-white/60 dark:bg-neutral-900/40 backdrop-blur-sm rounded-md p-1">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
               <div key={day} className="text-center text-sm font-medium text-gray-500 p-2">
                 {day}

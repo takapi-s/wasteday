@@ -148,7 +148,7 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = (props) => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+      <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-white/10 p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -195,14 +195,14 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = (props) => {
       </div>
 
       {/* Categories List */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-white/10">
+        <div className="px-4 py-3 border-b border-gray-200/60 dark:border-white/10">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             {activeTab === 'window' ? 'Desktop Applications' : 'Browser Domains'} ({filteredCategories.length})
           </h3>
         </div>
         
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+        <div className="divide-y divide-gray-200/60 dark:divide-white/10">
           {filteredCategories.length === 0 ? (
             <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
               No {activeTab === 'window' ? 'desktop applications' : 'browser domains'} found matching your filters.
@@ -300,14 +300,14 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = (props) => {
 
       {/* Browser tab: Show browsing domains */}
       {activeTab === 'browser' && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-white/10">
+          <div className="px-4 py-3 border-b border-gray-200/60 dark:border-white/10">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
               Recent Browser Domains ({browserDomains.length})
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">Domains from browsing sessions. Click to add as category.</p>
           </div>
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200/60 dark:divide-white/10">
             {browserDomains.length === 0 ? (
               <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                 No browsing data available.
@@ -353,14 +353,14 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = (props) => {
 
       {/* Discovered from sessions (for window tab) */}
       {activeTab === 'window' && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-white/10">
+          <div className="px-4 py-3 border-b border-gray-200/60 dark:border-white/10">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
               Discovered Desktop Apps (last 30 days)
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">Not registered yet. Add as Neutral by default.</p>
           </div>
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200/60 dark:divide-white/10">
             {(!discovered || discovered.length === 0) ? (
               <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                 No unregistered desktop applications detected.
@@ -390,7 +390,7 @@ export const AppManagementPage: React.FC<AppManagementPageProps> = (props) => {
       )}
 
       {/* Legend */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+      <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-white/10 p-4">
         <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Legend</h3>
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-3">

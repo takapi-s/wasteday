@@ -56,27 +56,7 @@ export const useIngestUI = () => {
     }
   };
 
-  // ETA計算
-  const etaText = useMemo(() => {
-    const gapThresholdMs = 20 * 1000;
-    const elapsedMs = Date.now() - sampling.lastEventTime;
-    
-    if (sampling.lastEventType === 'session_updated' || sampling.lastEventType === 'session_started') {
-      return 'ギャップ条件では挿入されません（連続更新中）。キー変更か終了時に挿入。';
-    } else {
-      const remain = Math.max(0, Math.ceil((gapThresholdMs - elapsedMs) / 1000));
-      return remain > 0 ? `このキーが続けば約 ${remain}s 後にギャップで insert 見込み` : '条件を満たせば直ちに insert 見込み';
-    }
-  }, [sampling.lastEventTime, sampling.lastEventType]);
-
-  // アイドル状態のETA
-  const idleEtaText = useMemo(() => {
-    if (sampling.currentSample?.user_state === 'active') {
-      const toIdle = Math.max(0, 60 - Math.floor(sampling.currentSample.idle_sec));
-      return toIdle > 0 ? ` / アイドル切替まで約 ${toIdle}s` : ' / まもなく idle 切替見込み';
-    }
-    return '';
-  }, [sampling.currentSample]);
+  // Suppress ETA strings in UI (requested)
 
   // 現在のセッション情報を更新
   const updateCurrentSession = () => {
@@ -120,7 +100,7 @@ export const useIngestUI = () => {
     liveSession,
     
     // 計算された値
-    etaText: etaText + idleEtaText,
+    etaText: '',
     stats,
     
     // ユーティリティ関数

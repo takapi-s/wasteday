@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { invoke } from "@tauri-apps/api/core";
-import { isEnabled, enable, disable } from "@tauri-apps/plugin-autostart";
+import { isEnabled, enable } from "@tauri-apps/plugin-autostart";
 import { useIngestUI } from '../hooks/ui';
 import { getSamplingService } from '../services/SamplingService';
 
@@ -64,18 +64,15 @@ export const IngestProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [autostartEnabled, setAutostartEnabled] = useState<boolean>(false);
   const [processedEvents, setProcessedEvents] = useState<Set<string>>(new Set());
 
-  // 自動起動設定の管理
+  // 自動起動は常時有効にする（トグル不可）
   const toggleAutostart = async () => {
     try {
-      if (autostartEnabled) {
-        await disable();
-        setAutostartEnabled(false);
-      } else {
+      if (!autostartEnabled) {
         await enable();
         setAutostartEnabled(true);
       }
     } catch (error) {
-      console.error('自動起動設定の変更に失敗しました:', error);
+      console.error('自動起動設定の有効化に失敗しました:', error);
     }
   };
 
@@ -84,9 +81,14 @@ export const IngestProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const initAutostartStatus = async () => {
       try {
         const enabled = await isEnabled();
-        setAutostartEnabled(enabled);
+        if (!enabled) {
+          await enable();
+          setAutostartEnabled(true);
+        } else {
+          setAutostartEnabled(true);
+        }
       } catch (error) {
-        console.error('自動起動状態の取得に失敗しました:', error);
+        console.error('自動起動の初期化に失敗しました:', error);
       }
     };
     initAutostartStatus();

@@ -63,22 +63,22 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ data, onHourCli
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-white/10 overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-b border-gray-200/60 dark:border-white/10">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             Weekly Calendar View
           </h3>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500 dark:text-gray-400">View:</span>
-            <div className="flex bg-gray-100 dark:bg-gray-700 rounded p-1 text-xs">
+            <div className="flex bg-gray-100/70 dark:bg-white/10 backdrop-blur-md rounded p-1 text-xs">
               <button
                 onClick={() => setViewMode('waste')}
                 className={`px-2 py-1 rounded transition-colors ${
                   viewMode === 'waste' 
-                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100' 
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+                    ? 'bg-white/80 dark:bg-white/10 text-gray-900 dark:text-neutral-100' 
+                    : 'text-gray-600 dark:text-neutral-300 hover:text-gray-900 dark:hover:text-neutral-100'
                 }`}
               >
                 Waste
@@ -87,8 +87,8 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ data, onHourCli
                 onClick={() => setViewMode('productive')}
                 className={`px-2 py-1 rounded transition-colors ${
                   viewMode === 'productive' 
-                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100' 
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+                    ? 'bg-white/80 dark:bg-white/10 text-gray-900 dark:text-neutral-100' 
+                    : 'text-gray-600 dark:text-neutral-300 hover:text-gray-900 dark:hover:text-neutral-100'
                 }`}
               >
                 Productive
@@ -97,8 +97,8 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ data, onHourCli
                 onClick={() => setViewMode('both')}
                 className={`px-2 py-1 rounded transition-colors ${
                   viewMode === 'both' 
-                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100' 
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+                    ? 'bg-white/80 dark:bg-white/10 text-gray-900 dark:text-neutral-100' 
+                    : 'text-gray-600 dark:text-neutral-300 hover:text-gray-900 dark:hover:text-neutral-100'
                 }`}
               >
                 Both
@@ -109,11 +109,11 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ data, onHourCli
       </div>
 
       {/* Calendar Grid */}
-      <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-b-lg">
-        <div className="min-w-full bg-white dark:bg-gray-800">
+      <div className="overflow-x-auto bg-white/60 dark:bg-neutral-900/40 backdrop-blur-sm rounded-b-lg">
+        <div className="min-w-full bg-transparent">
           {/* Day Headers */}
-          <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-700">
-            <div className="p-2 text-sm font-medium text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700">
+          <div className="grid grid-cols-8 border-b border-gray-200/60 dark:border-white/10">
+            <div className="p-2 text-sm font-medium text-gray-500 dark:text-gray-400 border-r border-gray-200/60 dark:border-white/10">
               Time
             </div>
             {data.dailyData.map((day, index) => {
@@ -122,10 +122,10 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ data, onHourCli
               return (
                 <div 
                   key={index}
-                  className={`p-2 text-center text-sm font-medium border-r border-gray-200 dark:border-gray-700 ${
+                  className={`p-2 text-center text-sm font-medium border-r border-gray-200/60 dark:border-white/10 ${
                     isToday 
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' 
-                      : 'text-gray-700 dark:text-gray-300'
+                      ? 'bg-white/20 dark:bg-white/5 text-gray-800 dark:text-neutral-100' 
+                      : 'text-gray-700 dark:text-neutral-300'
                   }`}
                 >
                   <div>{dayNames[day.dayOfWeek]}</div>
@@ -139,9 +139,9 @@ const WeeklyCalendarView: React.FC<WeeklyCalendarViewProps> = ({ data, onHourCli
 
           {/* Hour Rows */}
           {hours.map(hour => (
-            <div key={hour} className="grid grid-cols-8 border-b border-gray-100 dark:border-gray-700">
+            <div key={hour} className="grid grid-cols-8 border-b border-gray-100/60 dark:border-white/10">
               {/* Time Label */}
-              <div className="p-2 text-xs text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <div className="p-2 text-xs text-gray-500 dark:text-gray-400 border-r border-gray-200/60 dark:border-white/10 bg-gray-50/80 dark:bg-neutral-900/30 backdrop-blur-sm">
                 {hour.toString().padStart(2, '0')}:00
               </div>
               

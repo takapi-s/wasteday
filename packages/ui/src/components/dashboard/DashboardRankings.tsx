@@ -23,9 +23,9 @@ export const DashboardRankings: React.FC<DashboardRankingsProps> = ({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 h-96">
+    <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-white/10 p-4 h-96">
       <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Top Apps (Today)</h3>
-      <div className="h-72 overflow-y-auto bg-white dark:bg-gray-800">
+      <div className="h-72 overflow-y-auto bg-white/50 dark:bg-neutral-900/30 backdrop-blur-sm">
         {topWaste || topProductive ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>

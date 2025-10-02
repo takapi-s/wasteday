@@ -21,16 +21,16 @@ export const DataSourceToggle: React.FC<DataSourceToggleProps> = ({
   extensionData,
 }) => {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-      <div className="border-b border-gray-200 dark:border-gray-700">
+    <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg border border-gray-200/50 dark:border-white/10">
+      <div className="border-b border-gray-200/60 dark:border-white/10">
         <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
           <button
             onClick={() => onDataSourceChange('desktop')}
             disabled={desktopData.loading}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               dataSource === 'desktop'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                ? 'border-white/40 text-gray-900 dark:text-neutral-100'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-neutral-300 dark:hover:text-neutral-100'
             } ${desktopData.loading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <div className="flex items-center space-x-2">
@@ -39,7 +39,7 @@ export const DataSourceToggle: React.FC<DataSourceToggleProps> = ({
               </svg>
               <span>Desktop App</span>
               {desktopData.loading && (
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-white/50 border-t-transparent rounded-full animate-spin"></div>
               )}
             </div>
           </button>
@@ -48,8 +48,8 @@ export const DataSourceToggle: React.FC<DataSourceToggleProps> = ({
             disabled={extensionData.loading}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               dataSource === 'extension'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                ? 'border-white/40 text-gray-900 dark:text-neutral-100'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-neutral-300 dark:hover:text-neutral-100'
             } ${extensionData.loading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <div className="flex items-center space-x-2">
@@ -58,7 +58,7 @@ export const DataSourceToggle: React.FC<DataSourceToggleProps> = ({
               </svg>
               <span>Chrome Extension</span>
               {extensionData.loading && (
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-white/50 border-t-transparent rounded-full animate-spin"></div>
               )}
             </div>
           </button>
@@ -66,7 +66,7 @@ export const DataSourceToggle: React.FC<DataSourceToggleProps> = ({
       </div>
       
       {/* Data Source Information */}
-      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700">
+      <div className="px-6 py-4 bg-white/50 dark:bg-neutral-900/30 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
@@ -79,7 +79,7 @@ export const DataSourceToggle: React.FC<DataSourceToggleProps> = ({
                 {dataSource === 'desktop' ? 'Desktop App' : 'Chrome Extension'} Data
               </span>
               {(dataSource === 'desktop' ? desktopData.loading : extensionData.loading) && (
-                <span className="text-sm text-blue-600 dark:text-blue-400">
+                <span className="text-sm text-gray-600 dark:text-neutral-300">
                   Loading...
                 </span>
               )}

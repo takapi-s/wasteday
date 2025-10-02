@@ -56,7 +56,7 @@ export const DataPage: React.FC<DataPageProps> = ({
     <div className="space-y-6">
       {/* Current Status */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg shadow-sm border border-gray-200/50 dark:border-white/10 p-6">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Now</h2>
           <div className="font-mono text-sm space-y-2">
             <div className="text-gray-900 dark:text-gray-100">
@@ -71,16 +71,14 @@ export const DataPage: React.FC<DataPageProps> = ({
             <div className="text-xs text-green-600 dark:text-green-400">
               {liveSession}
             </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              Insert condition: Key change or gap &gt; 20 seconds or on exit
-            </div>
+            
             <div className="text-xs text-blue-600 dark:text-blue-400">
               {etaText}
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg shadow-sm border border-gray-200/50 dark:border-white/10 p-6">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Events</h2>
           <div className="max-h-80 overflow-auto">
             <ul className="space-y-1">
@@ -107,7 +105,7 @@ export const DataPage: React.FC<DataPageProps> = ({
 
       {/* Samples and Pending */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg shadow-sm border border-gray-200/50 dark:border-white/10 p-6">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Samples</h2>
           <div className="max-h-80 overflow-auto">
             <ul className="space-y-1">
@@ -124,7 +122,7 @@ export const DataPage: React.FC<DataPageProps> = ({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg shadow-sm border border-gray-200/50 dark:border-white/10 p-6">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Pending Inserts</h2>
           <div className="max-h-80 overflow-auto">
             <ul className="space-y-1">

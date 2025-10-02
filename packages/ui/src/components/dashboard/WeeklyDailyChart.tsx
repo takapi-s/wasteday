@@ -43,10 +43,10 @@ export const WeeklyDailyChart: React.FC<WeeklyDailyChartProps> = ({ weeklyData }
   const prodValues  = days.map(d => d.productiveSeconds);
 
   return (
-    <div ref={containerRef} className="absolute inset-0 bg-white dark:bg-gray-800">
-      <svg width={width} height={height} className="bg-white dark:bg-gray-800">
+    <div ref={containerRef} className="absolute inset-0 bg-transparent">
+      <svg width={width} height={height} className="bg-transparent">
         {[0,0.25,0.5,0.75,1].map((p, idx) => (
-          <line key={idx} x1={paddingLeft} x2={width - paddingRight} y1={paddingTop + plotHeight * p} y2={paddingTop + plotHeight * p} className="stroke-gray-200 dark:stroke-gray-700" strokeWidth="1" />
+          <line key={idx} x1={paddingLeft} x2={width - paddingRight} y1={paddingTop + plotHeight * p} y2={paddingTop + plotHeight * p} className="stroke-gray-200/60 dark:stroke-white/10" strokeWidth="1" />
         ))}
         {[0,0.5,1].map((p, idx) => (
           <text key={idx} x={paddingLeft - 6} y={paddingTop + plotHeight * (1 - p)} textAnchor="end" dominantBaseline="middle" className="fill-gray-400" style={{ fontSize: 10 }}>

@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
 
 export interface SettingsPageProps {
-  autostartEnabled?: boolean;
-  onToggleAutostart?: () => void;
   onSaveSettings?: (settings: { gapThreshold: number }) => void;
-  // Dark mode props
-  theme?: 'light' | 'dark' | 'system';
-  onThemeChange?: (theme: 'light' | 'dark' | 'system') => void;
   // Database status props
   databaseConnected?: boolean;
   databaseLoading?: boolean;
@@ -20,11 +15,7 @@ export interface SettingsPageProps {
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({
-  autostartEnabled = false,
-  onToggleAutostart,
   onSaveSettings,
-  theme = 'system',
-  onThemeChange,
   databaseConnected = false,
   databaseLoading = false,
   databaseError = null,
@@ -51,7 +42,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
   return (
     <div className={`max-w-2xl ${className}`}>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white/70 dark:bg-neutral-900/50 backdrop-blur-md rounded-lg shadow-sm border border-gray-200/50 dark:border-white/10 p-6">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-6">Settings</h2>
         
         <div className="space-y-6">
@@ -63,48 +54,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
           )}
 
-          {/* Theme Setting */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Theme
-            </label>
-            <div className="flex gap-2">
-              {(['light', 'dark', 'system'] as const).map((themeOption) => (
-                <button
-                  key={themeOption}
-                  onClick={() => onThemeChange?.(themeOption)}
-                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    theme === themeOption
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {themeOption === 'light' ? 'Light' : themeOption === 'dark' ? 'Dark' : 'System'}
-                </button>
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Choose your preferred color scheme
-            </p>
-          </div>
+          {/* Theme Setting removed for dark-only UI */}
 
-          {/* Autostart Setting */}
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="autostart-toggle"
-              checked={autostartEnabled}
-              onChange={onToggleAutostart}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-            />
-            <label htmlFor="autostart-toggle" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Autostart on login
-            </label>
-          </div>
+          {/* Autostart Setting removed: always-on managed by app */}
 
           {/* Gap Threshold */}
           <div>
-            <label htmlFor="gap-threshold" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="gap-threshold" className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">
               Gap threshold seconds
             </label>
             <input
@@ -115,9 +71,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               step="5"
               value={gapThreshold}
               onChange={(e) => setGapThreshold(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-gray-300/50 dark:border-white/10 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-white/20 bg-white/70 dark:bg-neutral-800/60 text-gray-900 dark:text-neutral-100 backdrop-blur-sm"
             />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs text-gray-500 dark:text-neutral-400">
               Minimum gap between sessions before inserting a new session
             </p>
           </div>
@@ -128,7 +84,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           <div className="pt-4">
             <button
               onClick={handleSave}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+              className="bg-neutral-200 hover:bg-neutral-300 text-neutral-900 dark:bg-white/10 dark:hover:bg-white/20 dark:text-neutral-100 font-medium py-2 px-4 rounded-md transition-colors"
             >
               Save Settings
             </button>

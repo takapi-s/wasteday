@@ -37,13 +37,13 @@ export const DashboardControls: React.FC<DashboardControlsProps> = ({
   return (
     <div className="space-y-4">
       {/* Period Selector */}
-      <div className="flex space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1 w-fit">
+      <div className="flex space-x-1 bg-gray-100/70 dark:bg-white/10 backdrop-blur-md rounded-lg p-1 w-fit">
         <button 
           onClick={() => onPeriodChange('today')}
           className={`px-4 py-2 text-sm rounded-md transition-colors ${
             selectedPeriod === 'today' 
-              ? 'bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100' 
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+              ? 'bg-white/80 dark:bg-white/10 text-gray-900 dark:text-neutral-100' 
+              : 'text-gray-600 dark:text-neutral-300 hover:text-gray-900 dark:hover:text-neutral-100'
           }`}
         >
           Today
@@ -52,8 +52,8 @@ export const DashboardControls: React.FC<DashboardControlsProps> = ({
           onClick={() => onPeriodChange('week')}
           className={`px-4 py-2 text-sm rounded-md transition-colors ${
             selectedPeriod === 'week' 
-              ? 'bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100' 
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+              ? 'bg-white/80 dark:bg-white/10 text-gray-900 dark:text-neutral-100' 
+              : 'text-gray-600 dark:text-neutral-300 hover:text-gray-900 dark:hover:text-neutral-100'
           }`}
         >
           Week
@@ -62,8 +62,8 @@ export const DashboardControls: React.FC<DashboardControlsProps> = ({
           onClick={() => onPeriodChange('month')}
           className={`px-4 py-2 text-sm rounded-md transition-colors ${
             selectedPeriod === 'month' 
-              ? 'bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-gray-100' 
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+              ? 'bg-white/80 dark:bg-white/10 text-gray-900 dark:text-neutral-100' 
+              : 'text-gray-600 dark:text-neutral-300 hover:text-gray-900 dark:hover:text-neutral-100'
           }`}
         >
           Month
@@ -76,7 +76,7 @@ export const DashboardControls: React.FC<DashboardControlsProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => onChangeWeekOffset?.(currentWeekOffset! - 1)}
-              className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="px-3 py-1 text-sm bg-gray-100/70 dark:bg-white/10 text-gray-800 dark:text-neutral-100 backdrop-blur-md rounded-md hover:bg-gray-200/80 dark:hover:bg-white/15 transition-colors"
             >
               ← Previous Week
             </button>
@@ -89,7 +89,7 @@ export const DashboardControls: React.FC<DashboardControlsProps> = ({
             {currentWeekOffset! < 0 && (
               <button
                 onClick={() => onChangeWeekOffset?.(currentWeekOffset! + 1)}
-                className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="px-3 py-1 text-sm bg-gray-100/70 dark:bg-white/10 text-gray-800 dark:text-neutral-100 backdrop-blur-md rounded-md hover:bg-gray-200/80 dark:hover:bg-white/15 transition-colors"
               >
                 Next Week →
               </button>
@@ -98,13 +98,13 @@ export const DashboardControls: React.FC<DashboardControlsProps> = ({
           <div className="flex items-center gap-2">
             {/* Week View Mode Toggle */}
             {onWeekViewModeChange && (
-              <div className="flex bg-gray-100 dark:bg-gray-700 rounded p-1 text-xs">
+              <div className="flex bg-gray-100/70 dark:bg-white/10 backdrop-blur-md rounded p-1 text-xs">
                 <button
                   onClick={() => onWeekViewModeChange('chart')}
                   className={`px-2 py-1 rounded transition-colors ${
                     weekViewMode === 'chart' 
-                      ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100' 
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+                      ? 'bg-white/80 dark:bg-white/10 text-gray-900 dark:text-neutral-100' 
+                      : 'text-gray-600 dark:text-neutral-300 hover:text-gray-900 dark:hover:text-neutral-100'
                   }`}
                 >
                   Chart
@@ -113,8 +113,8 @@ export const DashboardControls: React.FC<DashboardControlsProps> = ({
                   onClick={() => onWeekViewModeChange('calendar')}
                   className={`px-2 py-1 rounded transition-colors ${
                     weekViewMode === 'calendar' 
-                      ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100' 
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+                      ? 'bg-white/80 dark:bg-white/10 text-gray-900 dark:text-neutral-100' 
+                      : 'text-gray-600 dark:text-neutral-300 hover:text-gray-900 dark:hover:text-neutral-100'
                   }`}
                 >
                   Calendar
@@ -124,7 +124,7 @@ export const DashboardControls: React.FC<DashboardControlsProps> = ({
             {currentWeekOffset !== 0 && (
               <button
                 onClick={() => onChangeWeekOffset?.(0)}
-                className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                className="px-3 py-1 text-sm bg-gray-100/70 dark:bg-white/10 text-gray-800 dark:text-neutral-100 backdrop-blur-md rounded-md hover:bg-gray-200/80 dark:hover:bg-white/15 transition-colors"
               >
                 Back to This Week
               </button>
@@ -139,7 +139,7 @@ export const DashboardControls: React.FC<DashboardControlsProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => onChangeMonthOffset?.(currentMonthOffset! - 1)}
-              className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="px-3 py-1 text-sm bg-gray-100/70 dark:bg-white/10 text-gray-800 dark:text-neutral-100 backdrop-blur-md rounded-md hover:bg-gray-200/80 dark:hover:bg-white/15 transition-colors"
             >
               ← Previous Month
             </button>
@@ -152,7 +152,7 @@ export const DashboardControls: React.FC<DashboardControlsProps> = ({
             {currentMonthOffset! < 0 && (
               <button
                 onClick={() => onChangeMonthOffset?.(currentMonthOffset! + 1)}
-                className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="px-3 py-1 text-sm bg-gray-100/70 dark:bg-white/10 text-gray-800 dark:text-neutral-100 backdrop-blur-md rounded-md hover:bg-gray-200/80 dark:hover:bg-white/15 transition-colors"
               >
                 Next Month →
               </button>
@@ -163,14 +163,14 @@ export const DashboardControls: React.FC<DashboardControlsProps> = ({
             {onCalendarMetricChange && (
               <>
                 <span className="text-xs text-gray-500 dark:text-gray-400">Metric:</span>
-                <div className="flex bg-gray-100 dark:bg-gray-700 rounded p-1 text-xs">
+                <div className="flex bg-gray-100/70 dark:bg-white/10 backdrop-blur-md rounded p-1 text-xs">
                   <button
                     onClick={() => onCalendarMetricChange('waste')}
-                    className={`px-2 py-1 rounded ${calendarMetric === 'waste' ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-300'}`}
+                    className={`px-2 py-1 rounded ${calendarMetric === 'waste' ? 'bg-white/80 dark:bg-white/10 text-gray-900 dark:text-neutral-100' : 'text-gray-600 dark:text-neutral-300'}`}
                   >Waste</button>
                   <button
                     onClick={() => onCalendarMetricChange('productive')}
-                    className={`px-2 py-1 rounded ${calendarMetric === 'productive' ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-300'}`}
+                    className={`px-2 py-1 rounded ${calendarMetric === 'productive' ? 'bg-white/80 dark:bg-white/10 text-gray-900 dark:text-neutral-100' : 'text-gray-600 dark:text-neutral-300'}`}
                   >Productive</button>
                 </div>
               </>
@@ -178,7 +178,7 @@ export const DashboardControls: React.FC<DashboardControlsProps> = ({
             {currentMonthOffset !== 0 && (
               <button
                 onClick={() => onChangeMonthOffset?.(0)}
-                className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                className="px-3 py-1 text-sm bg-gray-100/70 dark:bg-white/10 text-gray-800 dark:text-neutral-100 backdrop-blur-md rounded-md hover:bg-gray-200/80 dark:hover:bg-white/15 transition-colors"
               >
                 Back to This Month
               </button>

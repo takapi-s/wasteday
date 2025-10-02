@@ -1,75 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
-type Theme = 'light' | 'dark' | 'system';
+type Theme = 'dark';
 
 export const useDarkMode = () => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('wasteday-theme');
-    return (saved as Theme) || 'system';
-  });
-
-  const [isDark, setIsDark] = useState(() => {
-    if (theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return theme === 'dark';
-  });
-
+  // Force dark mode on mount
   useEffect(() => {
     const root = window.document.documentElement;
-    
-    if (isDark) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  }, [isDark]);
+    root.classList.add('dark');
+  }, []);
 
-  useEffect(() => {
-    localStorage.setItem('wasteday-theme', theme);
-    
-    if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = (e: MediaQueryListEvent) => {
-        setIsDark(e.matches);
-      };
-      
-      setIsDark(mediaQuery.matches);
-      mediaQuery.addEventListener('change', handleChange);
-      
-      return () => {
-        mediaQuery.removeEventListener('change', handleChange);
-      };
-    } else {
-      setIsDark(theme === 'dark');
-    }
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prev => {
-      switch (prev) {
-        case 'light':
-          return 'dark';
-        case 'dark':
-          return 'system';
-        case 'system':
-          return 'light';
-        default:
-          return 'light';
-      }
-    });
-  };
-
-  const setLightMode = () => setTheme('light');
-  const setDarkMode = () => setTheme('dark');
-  const setSystemMode = () => setTheme('system');
+  const theme: Theme = 'dark';
+  const isDark = true;
 
   return {
     theme,
     isDark,
-    toggleTheme,
-    setLightMode,
-    setDarkMode,
-    setSystemMode,
+    // no-op functions kept for API compatibility
+    toggleTheme: () => {},
+    setLightMode: () => {},
+    setDarkMode: () => {},
+    setSystemMode: () => {},
   };
 };
