@@ -1,9 +1,9 @@
-name: Release Build
+name: Release Build (main)
 
 on:
   push:
     branches:
-      - release
+      - main
   workflow_dispatch:
 
 jobs:
