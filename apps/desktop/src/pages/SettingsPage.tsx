@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useIngest } from '../context/IngestContext';
 import { useDarkMode } from '../hooks/ui';
 import { SettingsPage as SharedSettingsPage } from '@wasteday/ui';
@@ -6,6 +6,17 @@ import { SettingsPage as SharedSettingsPage } from '@wasteday/ui';
 export const SettingsPage: React.FC = () => {
   const { autostartEnabled, toggleAutostart, updateGapThreshold } = useIngest();
   const { theme, setLightMode, setDarkMode, setSystemMode } = useDarkMode();
+  const [appVersion, setAppVersion] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    let mounted = true;
+    import('@tauri-apps/api/app').then(({ getVersion }) => {
+      getVersion()
+        .then((v) => { if (mounted) setAppVersion(v); })
+        .catch(() => {});
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
 
   const handleSaveSettings = (settings: { gapThreshold: number }) => {
     // Persist to localStorage for now; can be moved to Supabase user settings later
@@ -40,6 +51,7 @@ export const SettingsPage: React.FC = () => {
       theme={theme}
       onThemeChange={handleThemeChange}
       showDatabaseStatus={false}
+      appVersion={appVersion}
     />
   );
 };

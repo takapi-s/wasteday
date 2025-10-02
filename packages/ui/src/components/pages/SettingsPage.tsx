@@ -15,6 +15,8 @@ export interface SettingsPageProps {
   className?: string;
   // Toggle visibility of Database Status section (desktop uses local DB)
   showDatabaseStatus?: boolean;
+  // App version display (optional)
+  appVersion?: string;
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({
@@ -29,6 +31,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   databaseUrl = null,
   className = "",
   showDatabaseStatus = false,
+  appVersion,
 }) => {
   const [gapThreshold, setGapThreshold] = useState(() => {
     // Load saved gap threshold from localStorage if available
@@ -52,6 +55,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-6">Settings</h2>
         
         <div className="space-y-6">
+          {/* App Version */}
+          {appVersion && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">App Version</span>
+              <span className="text-sm font-mono text-gray-600 dark:text-gray-300">{appVersion}</span>
+            </div>
+          )}
+
           {/* Theme Setting */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
