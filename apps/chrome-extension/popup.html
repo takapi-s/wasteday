@@ -8,6 +8,8 @@
       padding: 20px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       margin: 0;
+      background: #0b0b0f;
+      color: #e5e7eb;
     }
     
     .header {
@@ -18,7 +20,7 @@
     .header h1 {
       margin: 0;
       font-size: 18px;
-      color: #333;
+      color: #f3f4f6;
     }
     
     .status {
@@ -26,37 +28,39 @@
       border-radius: 5px;
       margin-bottom: 15px;
       text-align: center;
+      border: 1px solid transparent;
     }
     
     .status.connected {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+      background-color: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
     }
     
     .status.disconnected {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
+      background-color: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.25);
     }
     
     .info {
-      background-color: #f8f9fa;
+      background-color: #111318;
       padding: 15px;
       border-radius: 5px;
       margin-bottom: 15px;
+      border: 1px solid #1f2430;
     }
     
     .info h3 {
       margin: 0 0 10px 0;
       font-size: 14px;
-      color: #495057;
+      color: #d1d5db;
     }
     
     .info p {
       margin: 5px 0;
       font-size: 12px;
-      color: #6c757d;
+      color: #9ca3af;
     }
     
     .buttons {
@@ -71,30 +75,32 @@
       border-radius: 4px;
       cursor: pointer;
       font-size: 12px;
+      background: #1f2430;
+      color: #e5e7eb;
     }
     
     .btn-primary {
-      background-color: #007bff;
-      color: white;
+      background-color: #2563eb;
+      color: #f9fafb;
     }
     
     .btn-primary:hover {
-      background-color: #0056b3;
+      background-color: #1d4ed8;
     }
     
     .btn-secondary {
-      background-color: #6c757d;
-      color: white;
+      background-color: #374151;
+      color: #f3f4f6;
     }
     
     .btn-secondary:hover {
-      background-color: #545b62;
+      background-color: #4b5563;
     }
     
     .stats {
       margin-top: 15px;
       font-size: 12px;
-      color: #6c757d;
+      color: #9ca3af;
     }
   </style>
 </head>
@@ -103,27 +109,20 @@
     <h1>WasteDay Tracker</h1>
   </div>
   
-  <div id="status" class="status disconnected">
-    デスクトップアプリに接続中...
-  </div>
+  <div id="status" class="status disconnected">Connecting to desktop app...</div>
   
   <div class="info">
-    <h3>機能</h3>
-    <p>• ブラウジング活動の自動追跡</p>
-    <p>• ドメイン別の時間計測</p>
-    <p>• WasteDayアプリへの自動送信</p>
+    <h3>Features</h3>
+    <p>• Automatic tracking of browsing activity</p>
+    <p>• Time tracking by domain</p>
+    <p>• Auto-send to WasteDay desktop</p>
   </div>
   
-  <div class="buttons">
-    <button id="testConnection" class="btn-primary">接続テスト</button>
-    <button id="viewSettings" class="btn-secondary">設定</button>
-    <button id="togglePause" class="btn-secondary">一時停止</button>
-  </div>
+  
   
   <div class="stats">
-    <p>最終更新: <span id="lastUpdate">-</span></p>
-    <p>アクティブタブ: <span id="activeTabs">0</span></p>
-    <p>一時停止: <span id="pausedState">-</span></p>
+    <p>Last update: <span id="lastUpdate">-</span></p>
+    <p>Active tabs: <span id="activeTabs">0</span></p>
     <div id="currentSessions" style="margin-top:8px"></div>
   </div>
 

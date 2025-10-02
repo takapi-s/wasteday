@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WasteDay Browser Tracker",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "Track browsing activity and send data to WasteDay desktop application",
   "permissions": [
     "tabs",

@@ -1,6 +1,6 @@
 {
   "name": "@wasteday/database",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Database package for Wasteday application",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
