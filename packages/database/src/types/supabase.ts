@@ -12,6 +12,24 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      migrations: {
+        Row: {
+          version: string
+          filename: string
+          executed_at: string
+        }
+        Insert: {
+          version: string
+          filename: string
+          executed_at?: string
+        }
+        Update: {
+          version?: string
+          filename?: string
+          executed_at?: string
+        }
+        Relationships: []
+      }
       waste_categories: {
         Row: {
           id: string
@@ -288,7 +306,10 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      exec_sql: {
+        Args: { sql: string }
+        Returns: unknown
+      }
     }
     Enums: {
       [_ in never]: never
