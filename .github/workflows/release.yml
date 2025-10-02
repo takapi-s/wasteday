@@ -7,8 +7,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-artifact:
+  tauri-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+      TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,43 +28,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build workspaces
-        run: npm run build --workspaces
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Upload desktop app dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-dist
-          path: apps/desktop/dist
-          if-no-files-found: ignore
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
 
-      - name: Upload ui package dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: ui-dist
-          path: packages/ui/dist
-          if-no-files-found: ignore
+      - name: Build desktop frontend
+        working-directory: apps/desktop
+        run: npm run build
 
-      - name: Upload database package dist
-        uses: actions/upload-artifact@v4
+      - name: Tauri build and release
+        uses: tauri-apps/tauri-action@v0
         with:
-          name: database-dist
-          path: packages/database/dist
-          if-no-files-found: ignore
-
-      - name: Upload ingest package dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: ingest-dist
-          path: packages/ingest/dist
-          if-no-files-found: ignore
-
-      - name: Upload localdb package dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: localdb-dist
-          path: packages/localdb/dist
-          if-no-files-found: ignore
+          tagName: ${{ github.ref_name }}
+          releaseName: ${{ github.ref_name }}
+          releaseBody: "Automated release for ${{ github.ref_name }}"
+          releaseDraft: false
+          prerelease: false
 
 name: Release
 
