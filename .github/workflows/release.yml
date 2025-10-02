@@ -1,3 +1,65 @@
+name: Release Build
+
+on:
+  push:
+    branches:
+      - release
+  workflow_dispatch:
+
+jobs:
+  build-and-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build workspaces
+        run: npm run build --workspaces
+
+      - name: Upload desktop app dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-dist
+          path: apps/desktop/dist
+          if-no-files-found: ignore
+
+      - name: Upload ui package dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-dist
+          path: packages/ui/dist
+          if-no-files-found: ignore
+
+      - name: Upload database package dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-dist
+          path: packages/database/dist
+          if-no-files-found: ignore
+
+      - name: Upload ingest package dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: ingest-dist
+          path: packages/ingest/dist
+          if-no-files-found: ignore
+
+      - name: Upload localdb package dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: localdb-dist
+          path: packages/localdb/dist
+          if-no-files-found: ignore
+
 name: Release
 
 on:

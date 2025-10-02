@@ -4,6 +4,40 @@ node_modules/
 # Build outputs
 dist/
 build/
+.next/
+out/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Tauri
+src-tauri/target/
+src-tauri/keys/
+
+# Chrome extension packages
+*.zip
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
 .turbo/
 .next/
 
