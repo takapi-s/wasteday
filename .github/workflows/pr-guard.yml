@@ -1,21 +1,11 @@
-name: PR Guard
+name: PR Guard (disabled)
 
 on:
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
-  enforce-source-branch:
+  noop:
     runs-on: ubuntu-latest
     steps:
-      - name: Check source branch is dev
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const base = context.payload.pull_request.base.ref;
-            const head = context.payload.pull_request.head.ref;
-            if (base === 'main' && head !== 'dev') {
-              core.setFailed(`Only PRs from 'dev' can be merged into 'main'. Received: ${head} -> ${base}`);
-            }
+      - run: echo "PR guard disabled due to tag-driven release."
 
