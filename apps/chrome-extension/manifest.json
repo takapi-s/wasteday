@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "WasteDay Browser Tracker",
   "version": "1.0.3",
-  "description": "Track browsing activity and send data to WasteDay desktop application",
+  "description": "ブラウジング活動を追跡し、WasteDayデスクトップアプリケーションにデータを送信するChrome拡張機能です。生産性向上と時間管理をサポートします。",
   "permissions": [
     "tabs",
     "activeTab",

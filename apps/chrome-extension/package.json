@@ -5,7 +5,7 @@
   "scripts": {
     "build": "echo 'Chrome extension build completed'",
     "dev": "echo 'Chrome extension development mode'",
-    "package": "zip -r wasteday-extension.zip . -x '*.git*' 'node_modules/*' '*.zip'"
+    "package": "powershell -Command \"Get-ChildItem -Path . -Exclude '*.git*','node_modules','*.zip' | Compress-Archive -DestinationPath wasteday-extension.zip -Force\""
   },
   "keywords": [
     "chrome-extension",
