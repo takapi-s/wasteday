@@ -69,3 +69,5 @@ Productivity（生産性）
 - GitHub: https://github.com/takapi-s/wasteday
 - 問題報告: GitHub Issues
 - ドキュメント: README.md
+
+
