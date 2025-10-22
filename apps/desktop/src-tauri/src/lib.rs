@@ -210,81 +210,33 @@ pub fn run() {
             }
             info!("Database initialized successfully");
             
-            // 初回起動かどうかを判定（connを使用する前に）
-            let is_first_run = match conn.query_row(
-                "SELECT COUNT(*) FROM user_settings WHERE key = 'has_run_before'",
-                [],
-                |row| {
-                    let count: i64 = row.get(0)?;
-                    Ok(count == 0)
-                }
-            ) {
-                Ok(result) => {
-                    info!("First run check query executed successfully, is_first_run: {}", result);
-                    result
-                }
-                Err(e) => {
-                    error!("Failed to check first run status: {}", e);
-                    return Err(e.into());
-                }
-            };
-            info!("Is first run: {}", is_first_run);
-            
-            // 初回起動フラグを設定
-            if is_first_run {
-                match conn.execute(
-                    "INSERT INTO user_settings(key, value) VALUES('has_run_before', 'true')",
-                    [],
-                ) {
-                    Ok(_) => info!("First run flag set successfully"),
-                    Err(e) => {
-                        error!("Failed to set first run flag: {}", e);
-                        return Err(e.into());
-                    }
-                }
-            }
-            
-            app.manage(Db(Mutex::new(conn)));
-            
             // 自動起動かどうかを判定
-            // 1. コマンドライン引数で判定
             let args: Vec<String> = std::env::args().collect();
             info!("Command line arguments: {:?}", args);
-            let is_auto_start_by_args = args.iter().any(|arg| arg.contains("--autostart") || arg.contains("--hidden"));
-            info!("Auto start by args: {}", is_auto_start_by_args);
-            
-            // 2. 環境変数で判定（Tauriの自動起動プラグインが設定する可能性）
+            let is_auto_start_by_args = args.iter().any(|arg| 
+                arg.contains("--autostart") || arg.contains("--hidden")
+            );
             let is_auto_start_by_env = std::env::var("TAURI_AUTOSTART").is_ok();
-            info!("Auto start by env: {}", is_auto_start_by_env);
-            
-            // システム起動時間による判定は削除（通常起動でも誤判定されるため）
             let is_auto_start = is_auto_start_by_args || is_auto_start_by_env;
             info!("Is auto start: {}", is_auto_start);
+            
+            app.manage(Db(Mutex::new(conn)));
             
             if let Some(window) = app.get_webview_window("main") {
                 info!("Main window found");
                 
-                if is_first_run {
-                    // 初回起動時は必ずウィンドウを表示
-                    info!("First run - showing window");
+                if !is_auto_start {
+                    // 手動起動時のみウィンドウを表示
+                    info!("Manual startup - showing window");
                     if let Err(e) = window.show() {
-                        error!("Failed to show window on first run: {}", e);
+                        error!("Failed to show window: {}", e);
                     }
                     if let Err(e) = window.set_focus() {
-                        error!("Failed to set focus on first run: {}", e);
-                    }
-                } else if !is_auto_start {
-                    // 2回目以降でも、自動起動でない場合はウィンドウを表示
-                    info!("Normal startup - showing window");
-                    if let Err(e) = window.show() {
-                        error!("Failed to show window on normal startup: {}", e);
-                    }
-                    if let Err(e) = window.set_focus() {
-                        error!("Failed to set focus on normal startup: {}", e);
+                        error!("Failed to set focus: {}", e);
                     }
                 } else {
-                    // 自動起動の場合はウィンドウを表示しない（トレイ常駐のみ）
-                    info!("Auto start - hiding window, running in tray only");
+                    // 自動起動時はウィンドウを表示しない（トレイ常駐のみ）
+                    info!("Auto start - running in tray only");
                 }
                 
                 // ウィンドウを閉じてもアプリを終了させない
