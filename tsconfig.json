@@ -3,7 +3,8 @@
   "references": [
     { "path": "./packages/localdb" },
     { "path": "./packages/ingest" },
-    { "path": "./packages/database" },
+    { "path": "./packages/remotedb" },
+    { "path": "./packages/ui" },
     { "path": "./apps/desktop" }
   ],
   "compilerOptions": {
