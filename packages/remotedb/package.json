@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
+    "build": "tsc",
     "seed-master-data": "yarn tsx seeds/seed-industry-categories-and-industries.ts && yarn tsx seeds/seed-listing-types.ts && yarn tsx seeds/seed-position-levels.ts",
     "seed-sample-tenants": "yarn tsx seeds/seed-sample-tenants.ts"
   },
