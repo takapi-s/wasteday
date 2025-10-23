@@ -1,0 +1,20 @@
+{
+  "name": "@packages/db",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "seed-master-data": "yarn tsx seeds/seed-industry-categories-and-industries.ts && yarn tsx seeds/seed-listing-types.ts && yarn tsx seeds/seed-position-levels.ts",
+    "seed-sample-tenants": "yarn tsx seeds/seed-sample-tenants.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "drizzle-orm": "^0.44.5",
+    "postgres": "^3.4.7"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.5",
+    "supabase": "2.47.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.2"
+  }
+}
