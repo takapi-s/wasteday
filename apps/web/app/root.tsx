@@ -32,6 +32,15 @@ export async function loader(args: Route.LoaderArgs) {
       return {};
     }
 
+    // サインアップページでの処理
+    if (url.pathname === "/signup") {
+      // 既にログインしている場合はダッシュボードにリダイレクト
+      if (userId) {
+        throw redirect("/");
+      }
+      return {};
+    }
+
     // 未認証ページは認証不要でアクセス可能
     if (url.pathname === "/unauthorized") {
       return {};

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, Link } from 'react-router';
 
 export interface LayoutProps {
   title?: string;
@@ -120,4 +120,3 @@ export const Layout: React.FC<LayoutProps> = ({
     </div>
   );
 };
-

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Form, useActionData, useNavigation } from "react-router";
+import { Form, useActionData, useNavigation, Link } from "react-router";
 import { useSignIn } from "@clerk/react-router";
 import { Lock, XCircle, Loader2 } from 'lucide-react';
 import type { Route } from "./+types/route";
@@ -16,7 +16,7 @@ export async function action({ request }: any) {
 
 export const meta: Route.MetaFunction = ({ data }) => {
   return [
-    { title: "ログイン" },
+    { title: "Login" },
   ];
 };
 
@@ -32,19 +32,19 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 基本的なバリデーション
+    // Basic validation
     if (!email.trim()) {
-      setError("メールアドレスを入力してください");
+      setError("Please enter your email address");
       return;
     }
 
     if (!password.trim()) {
-      setError("パスワードを入力してください");
+      setError("Please enter your password");
       return;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("有効なメールアドレスを入力してください");
+      setError("Please enter a valid email address");
       return;
     }
 
@@ -53,10 +53,10 @@ export default function LoginPage() {
 
     try {
       if (!signIn) {
-        throw new Error("サインイン機能が利用できません");
+        throw new Error("Sign-in functionality is not available");
       }
 
-      // Clerkでメール/パスワードログインを実行
+      // Execute email/password login with Clerk
       const result = await signIn.create({
         identifier: email.trim(),
         password: password,
@@ -64,27 +64,27 @@ export default function LoginPage() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        // リダイレクトはroot.tsxのloaderで処理される
+        // Redirect is handled by root.tsx loader
         window.location.href = "/";
       } else {
-        // 追加の認証ステップが必要な場合
-        console.log("追加の認証が必要:", result);
-        setError("ログインを完了するために追加の手順が必要です");
+        // If additional authentication steps are required
+        console.log("Additional authentication required:", result);
+        setError("Additional steps required to complete login");
       }
     } catch (err: any) {
-      console.error("ログインエラー:", err);
+      console.error("Login error:", err);
 
-      // Clerkのエラーメッセージを日本語に変換
-      let errorMessage = "ログインに失敗しました";
+      // Convert Clerk error messages to English
+      let errorMessage = "Login failed";
 
       if (err.errors && err.errors[0]) {
         const clerkError = err.errors[0];
         if (clerkError.code === "form_identifier_not_found") {
-          errorMessage = "このメールアドレスは登録されていません";
+          errorMessage = "This email address is not registered";
         } else if (clerkError.code === "form_password_incorrect") {
-          errorMessage = "パスワードが正しくありません";
+          errorMessage = "Incorrect password";
         } else if (clerkError.code === "form_identifier_exists") {
-          errorMessage = "このメールアドレスは既に使用されています";
+          errorMessage = "This email address is already in use";
         } else {
           errorMessage = clerkError.message || errorMessage;
         }
@@ -106,10 +106,10 @@ export default function LoginPage() {
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            ログイン
+            Login
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            アクセスするにはログインが必要です
+            Please log in to access your account
           </p>
         </div>
 
@@ -130,7 +130,7 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                メールアドレス
+                Email Address
               </label>
               <input
                 id="email"
@@ -147,7 +147,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                パスワード
+                Password
               </label>
               <input
                 id="password"
@@ -158,7 +158,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="パスワードを入力"
+                placeholder="Enter your password"
               />
             </div>
           </div>
@@ -172,17 +172,23 @@ export default function LoginPage() {
               {isLoading ? (
                 <div className="flex items-center">
                   <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
-                  ログイン中...
+                  Signing in...
                 </div>
               ) : (
-                "ログイン"
+                "Sign In"
               )}
             </button>
           </div>
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              アカウントをお持ちでない場合は、管理者にお問い合わせください
+              Don't have an account?{" "}
+              <Link
+                to="/signup"
+                className="font-medium text-indigo-600 hover:text-indigo-500"
+              >
+                Create Account
+              </Link>
             </p>
           </div>
         </form>

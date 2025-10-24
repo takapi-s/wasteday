@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router';
 import { Layout } from './components/Layout';
 import { DataPage } from './pages/DataPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -10,24 +10,49 @@ import { ActivityPage } from './pages/ActivityPage';
 import { IngestProvider } from './context/IngestContext';
 import { UpdateNotification } from './components/UpdateNotification';
 
-export const App: React.FC = () => {
-  return (
-    <Router>
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: (
       <IngestProvider>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<ActivityPage />} />
-            <Route path="dashboard" element={<UnifiedDashboardPage />} />
-            <Route path="dashboard/desktop" element={<DashboardPage />} />
-            <Route path="activity" element={<ActivityPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="data" element={<DataPage />} />
-            <Route path="apps" element={<AppManagementPage />} />
-          </Route>
-        </Routes>
+        <Layout />
         <UpdateNotification />
       </IngestProvider>
-    </Router>
-  );
+    ),
+    children: [
+      {
+        index: true,
+        element: <ActivityPage />
+      },
+      {
+        path: "dashboard",
+        element: <UnifiedDashboardPage />
+      },
+      {
+        path: "dashboard/desktop",
+        element: <DashboardPage />
+      },
+      {
+        path: "activity",
+        element: <ActivityPage />
+      },
+      {
+        path: "settings",
+        element: <SettingsPage />
+      },
+      {
+        path: "data",
+        element: <DataPage />
+      },
+      {
+        path: "apps",
+        element: <AppManagementPage />
+      }
+    ]
+  }
+]);
+
+export const App: React.FC = () => {
+  return <RouterProvider router={router} />;
 };
 
