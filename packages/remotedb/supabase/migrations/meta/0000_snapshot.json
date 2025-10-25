@@ -1,5 +1,5 @@
 {
-  "id": "f60f7fa7-dc86-4e75-b870-df5a68736bb5",
+  "id": "29c697f6-da83-4438-99ff-a77363d3906a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -26,6 +26,12 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "device_id": {
+          "name": "device_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "domain": {
           "name": "domain",
@@ -140,6 +146,21 @@
           "method": "btree",
           "with": {}
         },
+        "browsing_sessions_device_id_idx": {
+          "name": "browsing_sessions_device_id_idx",
+          "columns": [
+            {
+              "expression": "device_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "browsing_sessions_domain_idx": {
           "name": "browsing_sessions_domain_idx",
           "columns": [
@@ -198,6 +219,19 @@
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
+        "browsing_sessions_device_id_devices_id_fk": {
+          "name": "browsing_sessions_device_id_devices_id_fk",
+          "tableFrom": "browsing_sessions",
+          "tableTo": "devices",
+          "columnsFrom": [
+            "device_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
         "browsing_sessions_category_id_waste_categories_id_fk": {
           "name": "browsing_sessions_category_id_waste_categories_id_fk",
           "tableFrom": "browsing_sessions",
@@ -214,7 +248,362 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
+      "policies": {
+        "browsing_sessions_select_own": {
+          "name": "browsing_sessions_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"browsing_sessions\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "browsing_sessions_update_own": {
+          "name": "browsing_sessions_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"browsing_sessions\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )",
+          "withCheck": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"browsing_sessions\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "browsing_sessions_insert_own": {
+          "name": "browsing_sessions_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"browsing_sessions\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "browsing_sessions_delete_own": {
+          "name": "browsing_sessions_delete_own",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"browsing_sessions\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "browsing_sessions_service_role_all": {
+          "name": "browsing_sessions_service_role_all",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "service_role"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.devices": {
+      "name": "devices",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "devices_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "public_id": {
+          "name": "public_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "device_type": {
+          "name": "device_type",
+          "type": "device_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "device_id": {
+          "name": "device_id",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "varchar(1000)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "platform": {
+          "name": "platform",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "device_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "devices_tenant_user_idx": {
+          "name": "devices_tenant_user_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "devices_device_type_idx": {
+          "name": "devices_device_type_idx",
+          "columns": [
+            {
+              "expression": "device_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "devices_status_idx": {
+          "name": "devices_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "devices_is_active_idx": {
+          "name": "devices_is_active_idx",
+          "columns": [
+            {
+              "expression": "is_active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "devices_last_seen_at_idx": {
+          "name": "devices_last_seen_at_idx",
+          "columns": [
+            {
+              "expression": "last_seen_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "devices_tenant_user_device_id_uidx": {
+          "name": "devices_tenant_user_device_id_uidx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "device_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "devices_tenant_id_tenants_id_fk": {
+          "name": "devices_tenant_id_tenants_id_fk",
+          "tableFrom": "devices",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "devices_user_id_users_id_fk": {
+          "name": "devices_user_id_users_id_fk",
+          "tableFrom": "devices",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "devices_public_id_uidx": {
+          "name": "devices_public_id_uidx",
+          "nullsNotDistinct": false,
+          "columns": [
+            "public_id"
+          ]
+        }
+      },
+      "policies": {
+        "devices_select_own": {
+          "name": "devices_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"devices\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "devices_update_own": {
+          "name": "devices_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"devices\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )",
+          "withCheck": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"devices\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "devices_insert_own": {
+          "name": "devices_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"devices\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "devices_delete_own": {
+          "name": "devices_delete_own",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"devices\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "devices_service_role_all": {
+          "name": "devices_service_role_all",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "service_role"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
       "checkConstraints": {},
       "isRLSEnabled": false
     },
@@ -412,7 +801,55 @@
           ]
         }
       },
-      "policies": {},
+      "policies": {
+        "domains_select_own": {
+          "name": "domains_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"domains\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "domains_update_own": {
+          "name": "domains_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"domains\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )",
+          "withCheck": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"domains\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "domains_insert_own": {
+          "name": "domains_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"domains\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "domains_delete_own": {
+          "name": "domains_delete_own",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"domains\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "domains_service_role_all": {
+          "name": "domains_service_role_all",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "service_role"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
       "checkConstraints": {},
       "isRLSEnabled": false
     },
@@ -438,6 +875,12 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "device_id": {
+          "name": "device_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "start_time": {
           "name": "start_time",
@@ -553,6 +996,21 @@
           "method": "btree",
           "with": {}
         },
+        "sessions_device_id_idx": {
+          "name": "sessions_device_id_idx",
+          "columns": [
+            {
+              "expression": "device_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "sessions_identifier_idx": {
           "name": "sessions_identifier_idx",
           "columns": [
@@ -595,11 +1053,72 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
+        },
+        "sessions_device_id_devices_id_fk": {
+          "name": "sessions_device_id_devices_id_fk",
+          "tableFrom": "sessions",
+          "tableTo": "devices",
+          "columnsFrom": [
+            "device_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
+      "policies": {
+        "sessions_select_own": {
+          "name": "sessions_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"sessions\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "sessions_update_own": {
+          "name": "sessions_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"sessions\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )",
+          "withCheck": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"sessions\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "sessions_insert_own": {
+          "name": "sessions_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"sessions\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "sessions_delete_own": {
+          "name": "sessions_delete_own",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"sessions\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "sessions_service_role_all": {
+          "name": "sessions_service_role_all",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "service_role"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
       "checkConstraints": {},
       "isRLSEnabled": false
     },
@@ -687,7 +1206,27 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
+      "policies": {
+        "tenants_select_own": {
+          "name": "tenants_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.tenant_id = \"tenants\".\"id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "tenants_service_role_all": {
+          "name": "tenants_service_role_all",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "service_role"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
       "checkConstraints": {},
       "isRLSEnabled": false
     },
@@ -822,7 +1361,55 @@
           ]
         }
       },
-      "policies": {},
+      "policies": {
+        "user_settings_select_own": {
+          "name": "user_settings_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"user_settings\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "user_settings_update_own": {
+          "name": "user_settings_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"user_settings\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )",
+          "withCheck": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"user_settings\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "user_settings_insert_own": {
+          "name": "user_settings_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"user_settings\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "user_settings_delete_own": {
+          "name": "user_settings_delete_own",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"user_settings\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "user_settings_service_role_all": {
+          "name": "user_settings_service_role_all",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "service_role"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
       "checkConstraints": {},
       "isRLSEnabled": false
     },
@@ -866,9 +1453,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "clerk_user_id": {
-          "name": "clerk_user_id",
-          "type": "varchar(255)",
+        "auth_user_id": {
+          "name": "auth_user_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -975,11 +1562,11 @@
           "method": "btree",
           "with": {}
         },
-        "users_clerk_user_id_uidx": {
-          "name": "users_clerk_user_id_uidx",
+        "users_auth_user_id_uidx": {
+          "name": "users_auth_user_id_uidx",
           "columns": [
             {
-              "expression": "clerk_user_id",
+              "expression": "auth_user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1031,7 +1618,46 @@
           ]
         }
       },
-      "policies": {},
+      "policies": {
+        "users_select_own": {
+          "name": "users_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"users\".\"auth_user_id\" = auth.uid()"
+        },
+        "users_update_own": {
+          "name": "users_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"users\".\"auth_user_id\" = auth.uid()",
+          "withCheck": "\"users\".\"auth_user_id\" = auth.uid()"
+        },
+        "users_admin_select_tenant": {
+          "name": "users_admin_select_tenant",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users admin_users \n        WHERE admin_users.auth_user_id = auth.uid() \n        AND admin_users.role = 'admin' \n        AND admin_users.tenant_id = \"users\".\"tenant_id\"\n      )"
+        },
+        "users_service_role_all": {
+          "name": "users_service_role_all",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "service_role"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
       "checkConstraints": {},
       "isRLSEnabled": false
     },
@@ -1222,12 +1848,79 @@
           ]
         }
       },
-      "policies": {},
+      "policies": {
+        "waste_categories_select_own": {
+          "name": "waste_categories_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"waste_categories\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "waste_categories_update_own": {
+          "name": "waste_categories_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"waste_categories\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )",
+          "withCheck": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"waste_categories\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "waste_categories_insert_own": {
+          "name": "waste_categories_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"waste_categories\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "waste_categories_delete_own": {
+          "name": "waste_categories_delete_own",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM users \n        WHERE users.id = \"waste_categories\".\"user_id\" \n        AND users.auth_user_id = auth.uid()\n      )"
+        },
+        "waste_categories_service_role_all": {
+          "name": "waste_categories_service_role_all",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "service_role"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
       "checkConstraints": {},
       "isRLSEnabled": false
     }
   },
   "enums": {
+    "public.device_status": {
+      "name": "device_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "inactive",
+        "archived"
+      ]
+    },
+    "public.device_type": {
+      "name": "device_type",
+      "schema": "public",
+      "values": [
+        "desktop",
+        "mobile",
+        "tablet",
+        "browser"
+      ]
+    },
     "public.session_category": {
       "name": "session_category",
       "schema": "public",

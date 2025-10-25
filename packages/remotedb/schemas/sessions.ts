@@ -2,6 +2,7 @@ import {
   index,
   integer,
   pgEnum,
+  pgPolicy,
   pgTable,
   text,
   timestamp,
@@ -9,6 +10,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { authenticatedRole, serviceRole } from "drizzle-orm/supabase";
 
 import { tenants } from "./tenants";
 import { users } from "./users";
@@ -62,5 +64,58 @@ export const sessions = pgTable(
     ),
     deviceIdIdx: index("sessions_device_id_idx").on(table.deviceId),
     identifierIdx: index("sessions_identifier_idx").on(table.identifier),
+    
+    // RLS ポリシー
+    selectOwnPolicy: pgPolicy("sessions_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    updateOwnPolicy: pgPolicy("sessions_update_own", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    insertOwnPolicy: pgPolicy("sessions_insert_own", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    deleteOwnPolicy: pgPolicy("sessions_delete_own", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    serviceRolePolicy: pgPolicy("sessions_service_role_all", {
+      for: "all",
+      to: serviceRole,
+      using: sql`true`,
+      withCheck: sql`true`,
+    }),
   })
 );

@@ -3,12 +3,14 @@ import {
   index,
   integer,
   pgEnum,
+  pgPolicy,
   pgTable,
   timestamp,
   unique,
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { authenticatedRole, serviceRole } from "drizzle-orm/supabase";
 
 import { tenants } from "./tenants";
 import { users } from "./users";
@@ -60,5 +62,58 @@ export const wasteCategories = pgTable(
       table.type,
       table.identifier
     ),
+    
+    // RLS ポリシー
+    selectOwnPolicy: pgPolicy("waste_categories_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    updateOwnPolicy: pgPolicy("waste_categories_update_own", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    insertOwnPolicy: pgPolicy("waste_categories_insert_own", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    deleteOwnPolicy: pgPolicy("waste_categories_delete_own", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    serviceRolePolicy: pgPolicy("waste_categories_service_role_all", {
+      for: "all",
+      to: serviceRole,
+      using: sql`true`,
+      withCheck: sql`true`,
+    }),
   })
 );

@@ -1,5 +1,6 @@
-import { useUser, SignOutButton } from "@clerk/react-router";
+import { useUserInfo } from "../../stores/userStore";
 import { AlertTriangle } from 'lucide-react';
+import { Form } from "react-router";
 import type { Route } from "./+types/route";
 
 export const meta: Route.MetaFunction = ({ data }) => {
@@ -9,7 +10,7 @@ export const meta: Route.MetaFunction = ({ data }) => {
 };
 
 export default function UnauthorizedPage() {
-  const { user } = useUser();
+  const { user } = useUserInfo();
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -64,11 +65,14 @@ export default function UnauthorizedPage() {
                 権限確認を再試行
               </button>
 
-              <SignOutButton>
-                <button className="w-full bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700 transition-colors">
+              <Form method="post" action="/logout">
+                <button 
+                  type="submit"
+                  className="w-full bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700 transition-colors"
+                >
                   ログアウト
                 </button>
-              </SignOutButton>
+              </Form>
             </div>
           </div>
 

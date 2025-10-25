@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Form, useActionData, useNavigation, Link } from "react-router";
-import { useSignUp } from "@clerk/react-router";
-import { UserPlus, XCircle, Loader2, ArrowLeft } from 'lucide-react';
+import { Lock, XCircle, Loader2 } from 'lucide-react';
 import type { Route } from "./+types/route";
 
 interface ActionData {
@@ -14,9 +13,9 @@ export async function action({ request }: any) {
   return { success: true };
 }
 
-export const meta: Route.MetaFunction = () => {
+export const meta: Route.MetaFunction = ({ data }) => {
   return [
-    { title: "Create Account" },
+    { title: "Sign Up" },
   ];
 };
 
@@ -24,13 +23,10 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
 
-  const { signUp, setActive } = useSignUp();
   const navigation = useNavigation();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,23 +43,8 @@ export default function SignupPage() {
       return;
     }
 
-    if (!firstName.trim()) {
-      setError("Please enter your first name");
-      return;
-    }
-
-    if (!lastName.trim()) {
-      setError("Please enter your last name");
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long");
+    if (!name.trim()) {
+      setError("Please enter your name");
       return;
     }
 
@@ -72,66 +53,61 @@ export default function SignupPage() {
       return;
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
     try {
-      if (!signUp) {
-        throw new Error("Sign-up functionality is not available");
-      }
-
-      const result = await signUp.create({
-        emailAddress: email,
-        password: password,
-        firstName: firstName,
-        lastName: lastName,
+      // APIエンドポイントを使用してサインアップ
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password,
+          name: name.trim(),
+        })
       });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        setSuccess(true);
-        // Redirect to dashboard on success
-        window.location.href = "/";
-      } else {
-        // If email verification is required
-        setSuccess(true);
-        setError("Verification email sent. Please click the link in your email to activate your account.");
+      const result = await response.json() as {
+        success?: boolean;
+        user?: {
+          id: number;
+          publicId: string;
+          email: string;
+          name: string;
+          role: string;
+          tenantId: number;
+        };
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Signup failed');
+      }
+
+      if (result.success) {
+        // アカウント作成成功後、すぐにログインページにリダイレクト
+        window.location.href = "/login";
       }
     } catch (err: any) {
-      console.error("Sign-up error:", err);
-      setError(err.errors?.[0]?.message || "Account creation failed");
+      console.error("Signup error:", err);
+
+      // Use error message from API
+      setError(err.message || "Signup failed");
     } finally {
       setIsLoading(false);
     }
   };
-
-  if (success && !error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100">
-        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto">
-              <UserPlus className="w-8 h-8 text-white" />
-            </div>
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-              Account Created
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Your account has been successfully created
-            </p>
-            <div className="mt-6">
-              <Link
-                to="/"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                Go to Dashboard
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -139,14 +115,14 @@ export default function SignupPage() {
         <div>
           <div className="flex justify-center">
             <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center">
-              <UserPlus className="w-8 h-8 text-white" />
+              <Lock className="w-8 h-8 text-white" />
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Create Account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Create a new account to get started
+            Please fill in your information to create an account
           </p>
         </div>
 
@@ -165,37 +141,21 @@ export default function SignupPage() {
           )}
 
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                  First Name
-                </label>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  required
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="John"
-                />
-              </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                  Last Name
-                </label>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  required
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Doe"
-                />
-              </div>
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                Full Name
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                placeholder="Your full name"
+              />
             </div>
 
             <div>
@@ -210,8 +170,8 @@ export default function SignupPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="example@email.com"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                placeholder="your@example.com"
               />
             </div>
 
@@ -227,8 +187,8 @@ export default function SignupPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="At least 8 characters"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                placeholder="Enter your password"
               />
             </div>
 
@@ -244,8 +204,8 @@ export default function SignupPage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Re-enter your password"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                placeholder="Confirm your password"
               />
             </div>
           </div>
@@ -253,19 +213,16 @@ export default function SignupPage() {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading || !email || !password || !name || !confirmPassword}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
-                </>
+                <div className="flex items-center">
+                  <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
+                  Creating Account...
+                </div>
               ) : (
-                <>
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Create Account
-                </>
+                "Create Account"
               )}
             </button>
           </div>

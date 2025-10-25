@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Form, useActionData, useNavigation, Link } from "react-router";
-import { useSignIn } from "@clerk/react-router";
 import { Lock, XCircle, Loader2 } from 'lucide-react';
 import type { Route } from "./+types/route";
 
@@ -26,7 +25,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const { signIn, setActive } = useSignIn();
   const navigation = useNavigation();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,45 +50,82 @@ export default function LoginPage() {
     setError("");
 
     try {
-      if (!signIn) {
-        throw new Error("Sign-in functionality is not available");
-      }
-
-      // Execute email/password login with Clerk
-      const result = await signIn.create({
-        identifier: email.trim(),
-        password: password,
+      // APIエンドポイントを使用してログイン
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password,
+        })
       });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        // Redirect is handled by root.tsx loader
+      const result = await response.json() as {
+        success?: boolean;
+        session?: {
+          accessToken: string;
+          refreshToken: string;
+          expiresAt: number;
+        };
+        user?: {
+          id: number;
+          publicId: string;
+          email: string;
+          name: string;
+          role: string;
+          tenantId: number;
+        };
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Login failed');
+      }
+
+      if (result.success && result.session) {
+        console.log("Login successful, setting session:", result.session);
+        
+        // セッション情報をlocalStorageに保存
+        localStorage.setItem('supabase_session', JSON.stringify(result.session));
+        
+        // Supabase SSRが期待するCookie形式を設定
+        // Supabaseは sb-<project-id>-auth-token という形式のCookieを期待
+        const maxAge = result.session.expiresAt 
+          ? Math.floor((result.session.expiresAt * 1000 - Date.now()) / 1000)
+          : 3600;
+        
+        // localhostの場合のCookie設定
+        const domain = window.location.hostname === 'localhost' ? '' : `; domain=${window.location.hostname}`;
+        
+        // Supabaseが期待する形式のセッションJSONを設定
+        const sessionData = {
+          access_token: result.session.accessToken,
+          refresh_token: result.session.refreshToken,
+          expires_at: result.session.expiresAt,
+          expires_in: maxAge,
+          token_type: 'bearer',
+          user: result.user
+        };
+        
+        // Supabaseの認証Cookieを設定（プロジェクト参照IDを含む）
+        // ローカル開発環境では sb-127-auth-token 形式
+        const cookieValue = JSON.stringify(sessionData);
+        const cookieString = `sb-127-auth-token=${cookieValue}; path=/; max-age=${maxAge}; SameSite=Lax${domain}`;
+        
+        console.log("Setting cookie:", cookieString.substring(0, 100) + "...");
+        document.cookie = cookieString;
+        
+        console.log("Cookies after setting:", document.cookie);
+        console.log("Cookie set, redirecting to /");
+        
+        // ホームページにリダイレクト
         window.location.href = "/";
-      } else {
-        // If additional authentication steps are required
-        console.log("Additional authentication required:", result);
-        setError("Additional steps required to complete login");
       }
     } catch (err: any) {
       console.error("Login error:", err);
 
-      // Convert Clerk error messages to English
-      let errorMessage = "Login failed";
-
-      if (err.errors && err.errors[0]) {
-        const clerkError = err.errors[0];
-        if (clerkError.code === "form_identifier_not_found") {
-          errorMessage = "This email address is not registered";
-        } else if (clerkError.code === "form_password_incorrect") {
-          errorMessage = "Incorrect password";
-        } else if (clerkError.code === "form_identifier_exists") {
-          errorMessage = "This email address is already in use";
-        } else {
-          errorMessage = clerkError.message || errorMessage;
-        }
-      }
-
-      setError(errorMessage);
+      // Use error message from API
+      setError(err.message || "Login failed");
     } finally {
       setIsLoading(false);
     }

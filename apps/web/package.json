@@ -12,10 +12,10 @@
     "typecheck": "npm run cf-typegen && react-router typegen && tsc -b"
   },
   "dependencies": {
-    "@clerk/backend": "^2.15.0",
-    "@clerk/react-router": "^1.10.2",
     "@packages/db": "file:../../packages/remotedb",
     "@remix-run/router": "^1.23.0",
+    "@supabase/ssr": "^0.5.0",
+    "@supabase/supabase-js": "^2.45.4",
     "drizzle-orm": "^0.44.5",
     "isbot": "^5.1.31",
     "lucide-react": "^0.544.0",

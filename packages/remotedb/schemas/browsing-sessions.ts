@@ -1,6 +1,7 @@
 import {
   index,
   integer,
+  pgPolicy,
   pgTable,
   text,
   timestamp,
@@ -8,6 +9,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { authenticatedRole, serviceRole } from "drizzle-orm/supabase";
 
 import { tenants } from "./tenants";
 import { users } from "./users";
@@ -58,5 +60,58 @@ export const browsingSessions = pgTable(
     deviceIdIdx: index("browsing_sessions_device_id_idx").on(table.deviceId),
     domainIdx: index("browsing_sessions_domain_idx").on(table.domain),
     categoryIdIdx: index("browsing_sessions_category_id_idx").on(table.categoryId),
+    
+    // RLS ポリシー
+    selectOwnPolicy: pgPolicy("browsing_sessions_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    updateOwnPolicy: pgPolicy("browsing_sessions_update_own", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    insertOwnPolicy: pgPolicy("browsing_sessions_insert_own", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    deleteOwnPolicy: pgPolicy("browsing_sessions_delete_own", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    serviceRolePolicy: pgPolicy("browsing_sessions_service_role_all", {
+      for: "all",
+      to: serviceRole,
+      using: sql`true`,
+      withCheck: sql`true`,
+    }),
   })
 );

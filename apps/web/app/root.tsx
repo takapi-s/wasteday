@@ -8,64 +8,69 @@ import {
   redirect,
   useLocation,
 } from "react-router";
-import { ClerkProvider } from "@clerk/react-router";
-import { rootAuthLoader } from "@clerk/react-router/ssr.server";
 import { ToastContainer } from "./components/Toast";
 import { useLoaderDataSync } from "./stores/userStore";
 import { getAuthenticatedUser } from "./lib/auth.server";
+import { createSupabaseServerClient } from "./lib/supabase.server";
 
 import type { Route } from "./+types/root";
 import "./app.css";
 
 
 export async function loader(args: Route.LoaderArgs) {
-  return rootAuthLoader(args, async ({ request, context, params }) => {
-    const { sessionId, userId, getToken } = request.auth;
-    const url = new URL(request.url);
+  const { request } = args;
+  const url = new URL(request.url);
+  
+  // APIルートは認証不要
+  if (url.pathname.startsWith("/api/")) {
+    return {};
+  }
 
-    // ログインページでの処理
-    if (url.pathname === "/login") {
-      // 既にログインしている場合はダッシュボードにリダイレクト
-      if (userId) {
-        throw redirect("/");
-      }
-      return {};
-    }
-
-    // サインアップページでの処理
-    if (url.pathname === "/signup") {
-      // 既にログインしている場合はダッシュボードにリダイレクト
-      if (userId) {
-        throw redirect("/");
-      }
-      return {};
-    }
-
-    // 未認証ページは認証不要でアクセス可能
-    if (url.pathname === "/unauthorized") {
-      return {};
-    }
-
-    // その他のページでは未ログインの場合はログインページにリダイレクト
-    if (!userId) {
-      throw redirect("/login");
-    }
-
-
-    // ログイン済みの場合、権限をチェック
-    const user = await getAuthenticatedUser(args);
-
-    // 管理者権限がない場合は未認証ページにリダイレクト
-    if (!user) {
-      throw redirect("/unauthorized");
-    }
-
-
-
-    return {
-      user,
-    };
+  // Supabase Authでユーザー認証をチェック
+  const supabase = createSupabaseServerClient(args);
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
+  console.log("Auth check:", { 
+    pathname: url.pathname, 
+    hasUser: !!user, 
+    hasError: !!error,
+    error: error?.message 
   });
+
+  // ログインページでの処理
+  if (url.pathname === "/login") {
+    // 既にログインしている場合はダッシュボードにリダイレクト
+    if (user && !error) {
+      throw redirect("/");
+    }
+    return {};
+  }
+
+  // サインアップページでの処理
+  if (url.pathname === "/signup") {
+    // 既にログインしている場合はダッシュボードにリダイレクト
+    if (user && !error) {
+      throw redirect("/");
+    }
+    return {};
+  }
+
+  // 未認証ページは認証不要でアクセス可能
+  if (url.pathname === "/unauthorized") {
+    return {};
+  }
+
+  // その他のページでは未ログインの場合はログインページにリダイレクト
+  if (!user || error) {
+    throw redirect("/login");
+  }
+
+  // ログイン済みの場合、ユーザー情報を取得
+  const authenticatedUser = await getAuthenticatedUser(args);
+
+  return {
+    user: authenticatedUser,
+  };
 }
 
 export const links: Route.LinksFunction = () => [
@@ -104,12 +109,12 @@ export default function App({ loaderData }: Route.ComponentProps) {
   useLoaderDataSync(loaderData);
 
   return (
-    <ClerkProvider loaderData={loaderData}>
+    <>
       <ConditionalLayout>
         <Outlet />
       </ConditionalLayout>
       <ToastContainer />
-    </ClerkProvider>
+    </>
   );
 }
 

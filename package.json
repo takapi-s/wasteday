@@ -12,11 +12,7 @@
     "dev": "npm run dev --workspaces",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
-    "clean": "npm run clean --workspaces",
-    "db:start": "cd packages/database && npm run start",
-    "db:stop": "cd packages/database && npm run stop",
-    "db:migrate": "cd packages/database && npm run migrate",
-    "db:reset": "cd packages/database && npm run reset"
+    "clean": "npm run clean --workspaces"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

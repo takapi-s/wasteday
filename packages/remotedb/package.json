@@ -4,6 +4,9 @@
   "main": "index.ts",
   "scripts": {
     "build": "tsc",
+    "migrate": "drizzle-kit migrate",
+    "generate": "drizzle-kit generate",
+    "push": "drizzle-kit push",
     "seed-master-data": "yarn tsx seeds/seed-industry-categories-and-industries.ts && yarn tsx seeds/seed-listing-types.ts && yarn tsx seeds/seed-position-levels.ts",
     "seed-sample-tenants": "yarn tsx seeds/seed-sample-tenants.ts"
   },

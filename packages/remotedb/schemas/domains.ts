@@ -2,12 +2,14 @@ import {
   boolean,
   index,
   integer,
+  pgPolicy,
   pgTable,
   timestamp,
   unique,
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { authenticatedRole, serviceRole } from "drizzle-orm/supabase";
 
 import { tenants } from "./tenants";
 import { users } from "./users";
@@ -50,5 +52,58 @@ export const domains = pgTable(
       table.userId,
       table.domain
     ),
+    
+    // RLS ポリシー
+    selectOwnPolicy: pgPolicy("domains_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    updateOwnPolicy: pgPolicy("domains_update_own", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    insertOwnPolicy: pgPolicy("domains_insert_own", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    deleteOwnPolicy: pgPolicy("domains_delete_own", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = ${table.userId} 
+        AND users.auth_user_id = auth.uid()
+      )`,
+    }),
+    
+    serviceRolePolicy: pgPolicy("domains_service_role_all", {
+      for: "all",
+      to: serviceRole,
+      using: sql`true`,
+      withCheck: sql`true`,
+    }),
   })
 );

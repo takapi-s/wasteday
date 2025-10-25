@@ -3,6 +3,7 @@ import {
   index,
   integer,
   pgEnum,
+  pgPolicy,
   pgTable,
   timestamp,
   unique,
@@ -11,6 +12,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { authenticatedRole, serviceRole } from "drizzle-orm/supabase";
 
 import { tenants } from "./tenants";
 
@@ -32,7 +34,7 @@ export const users = pgTable(
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade", onUpdate: "cascade" }),
     email: varchar("email", { length: 255 }).notNull(),
-    clerkUserId: varchar("clerk_user_id", { length: 255 }).notNull(),
+    authUserId: uuid("auth_user_id").notNull(), // ClerkからSupabase Authへ変更
     name: varchar("name", { length: 255 }).notNull(),
     role: userRoleEnum("role").notNull().default("member"),
     isActive: boolean("is_active").notNull().default(true),
@@ -51,10 +53,43 @@ export const users = pgTable(
     roleIdx: index("users_role_idx").on(table.role),
     isActiveIdx: index("users_is_active_idx").on(table.isActive),
     publicIdUidIdx: unique("users_public_id_uidx").on(table.publicId),
-    clerkUserIdUidIdx: uniqueIndex("users_clerk_user_id_uidx").on(
-      table.clerkUserId
+    authUserIdUidIdx: uniqueIndex("users_auth_user_id_uidx").on(
+      table.authUserId
     ),
     emailUidIdx: uniqueIndex("users_email_uidx").on(table.email),
+    
+    // RLS ポリシー
+    selectOwnPolicy: pgPolicy("users_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.authUserId} = auth.uid()`,
+    }),
+    
+    updateOwnPolicy: pgPolicy("users_update_own", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`${table.authUserId} = auth.uid()`,
+      withCheck: sql`${table.authUserId} = auth.uid()`,
+    }),
+    
+    // 管理者はテナント内の全ユーザーを閲覧可能
+    adminSelectPolicy: pgPolicy("users_admin_select_tenant", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM users admin_users 
+        WHERE admin_users.auth_user_id = auth.uid() 
+        AND admin_users.role = 'admin' 
+        AND admin_users.tenant_id = ${table.tenantId}
+      )`,
+    }),
+    
+    serviceRolePolicy: pgPolicy("users_service_role_all", {
+      for: "all",
+      to: serviceRole,
+      using: sql`true`,
+      withCheck: sql`true`,
+    }),
   })
 );
 

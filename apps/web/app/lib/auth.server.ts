@@ -1,14 +1,13 @@
-import { getAuth } from "@clerk/react-router/ssr.server";
-import { createClerkClient } from "@clerk/backend";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { db } from "@packages/db/client.server";
 import { eq } from "drizzle-orm";
 import { users, tenants } from "@packages/db/schemas";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "./supabase.server";
 
 export interface AuthenticatedUser {
   id: number; // DB user id
   publicId: string; // DB public_id
-  clerkUserId: string; // Clerk user id
+  authUserId: string; // Supabase Auth user id
   email: string;
   name: string;
   role: string;
@@ -29,8 +28,10 @@ export async function getAuthenticatedUser(
   args: AuthArgs
 ): Promise<AuthenticatedUser | null> {
   try {
-    const { userId } = await getAuth(args);
-    if (!userId) {
+    const supabase = createSupabaseServerClient(args);
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
       return null;
     }
 
@@ -40,7 +41,7 @@ export async function getAuthenticatedUser(
     const dbUsers = await dbClient
       .select()
       .from(users)
-      .where(eq(users.clerkUserId, userId))
+      .where(eq(users.authUserId, user.id))
       .limit(1);
     const dbUser = dbUsers[0];
 
@@ -59,14 +60,10 @@ export async function getAuthenticatedUser(
       return null;
     }
 
-    // 表示用にClerkの画像URL等を取得（任意）
+    // 表示用にSupabase Authの画像URL等を取得（任意）
     let imageUrl: string | undefined;
     try {
-      const clerkClient = createClerkClient({
-        secretKey: args.context.cloudflare.env.CLERK_SECRET_KEY,
-      });
-      const clerkUser = await clerkClient.users.getUser(userId);
-      imageUrl = clerkUser?.imageUrl;
+      imageUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
     } catch {
       // 画像URL取得に失敗しても致命的ではないため無視
     }
@@ -82,7 +79,7 @@ export async function getAuthenticatedUser(
     return {
       id: dbUser.id,
       publicId: dbUser.publicId,
-      clerkUserId: dbUser.clerkUserId,
+      authUserId: dbUser.authUserId,
       email: dbUser.email,
       name: dbUser.name,
       role: dbUser.role,
@@ -100,14 +97,20 @@ export async function getAuthenticatedUser(
 }
 
 /**
- * 簡単な認証チェック用のヘルパー関数（ClerkのユーザーID）
+ * 簡単な認証チェック用のヘルパー関数（Supabase AuthのユーザーID）
  */
 export async function getUserId(
   args: AuthArgs
 ): Promise<string | null> {
   try {
-    const { userId } = await getAuth(args);
-    return userId ?? null;
+    const supabase = createSupabaseServerClient(args);
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      return null;
+    }
+    
+    return user.id;
   } catch (error) {
     console.error("ユーザーID取得エラー:", error);
     return null;
