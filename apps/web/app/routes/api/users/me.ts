@@ -1,7 +1,7 @@
 import { getAuthenticatedUser } from "../../../lib/auth.server";
-import type { Route } from "./+types/me";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 
-export async function GET(args: Route.LoaderArgs) {
+export async function loader(args: LoaderFunctionArgs) {
   try {
     const user = await getAuthenticatedUser(args);
     
@@ -24,7 +24,7 @@ export async function GET(args: Route.LoaderArgs) {
   }
 }
 
-export async function PUT(args: Route.ActionArgs) {
+export async function action(args: ActionFunctionArgs) {
   try {
     const user = await getAuthenticatedUser(args);
     

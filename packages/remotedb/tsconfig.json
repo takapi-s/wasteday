@@ -5,13 +5,17 @@
     "rootDir": "./",
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler"
   },
   "include": [
     "**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "seeds"
   ]
 }

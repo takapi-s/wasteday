@@ -95,7 +95,7 @@ async function ensureUser(
 
   const inserted = await db
     .insert(users)
-    .values({ tenantId, email, name, role, clerkUserId: clerkUserId ?? email })
+    .values({ tenantId, email, name, role, authUserId: clerkUserId ?? email })
     .returning();
   return inserted[0];
 }
